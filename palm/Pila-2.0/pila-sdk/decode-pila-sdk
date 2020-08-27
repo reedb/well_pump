@@ -1,0 +1,70 @@
+# bash script to create PILA SDK 5 Version 2.0
+# from Palm OS SDK 5.0-1 and Sony SDK 5.0 Version 1.2
+#
+# See the pila-user-manual.html Appendix B to find out what this script does
+# and how you need to used it to create the Pila SDK.
+
+# cleaning up first - just in case the last run didn't complete
+rm -fR ./sdk-5 ./Sony\ SDK\ Support ./inc ./transform-list
+
+size=`ls -l ./palmos-sdk-5.0-1.tar.gz 2>&1 | awk '{ printf "%s",$5 }'`
+if [[ "$size" == "430914" ]]
+then
+  # getting the header files from the Palm OS SDK unpacked
+  echo Unpacking Palm OS SDK 5
+  tar -xzf ./palmos-sdk-5.0-1.tar.gz
+else
+  echo "*** Either no Palm OS SDK 5.0 was found or it doesn't have the right size"
+  exit 0
+fi
+
+# check if the Sony SDK 5.0 is available and has the right size
+size=`ls -l ./cliesdk50e.zip 2>&1 | awk '{ printf "%s",$5 }'`
+if [[ "$size" == '1052358' ]]
+then
+  # file is there and has the right size so we can unpack it
+  echo Unpacking Sony SDK 5
+  unzip ./cliesdk50e.zip >/dev/null
+
+  # since it isn't exactly where we need it, we just move it into the right place
+  mv ./Sony\ SDK\ Support/R5.0/Incs ./sdk-5/include/Sony
+
+  # check if the Sony SDK 3.0 is available and has the right size
+  size=`ls -l ./cliesdk30e.zip 2>&1 | awk '{ printf "%s",$5 }'`
+  if [[ "$size" == '947027' ]]
+  then
+    # file is there and has the right size so we can unpack the files we need
+    echo Unpacking Sony SDK 3
+    unzip -j ./cliesdk30e.zip */SonyMsaLib.h */SonyCapLib.h */SonySndLib.h -d sdk-5/include/Sony/Libraries >/dev/null
+  else
+    echo "*** Either the Sony SDK 3.0 was not found or had the wrong size."
+    echo "*** Encoded SDK files for SonyCapLib.h, SonySndLib.h and SonyMsaLib.h will not be generated." 
+  fi
+else
+  echo "Either the Sony SDK was not found or had the wrong size."
+  echo "Include files for Sony will not be generated."
+fi
+
+# now adding the transform files
+echo Unpacking the transform files
+unzip pila-sdk-5.zip >/dev/null
+
+# create a list of all the transform files we have in place now
+echo Creating transform file list
+find sdk-5 -name "*.sdk" >./transform-list
+  
+# run the transform program with that list
+echo Transforming *.sdk to *.inc
+./transform-sdk ./transform-list
+
+echo Cleaning up
+
+# Copy the resulting directory holding our INC files into the final place
+mv ./sdk-5/include ./inc
+
+# and remove everything we no longer need
+rm -fR sdk-5 Sony\ SDK\ Support transform-list
+find inc -not -name "*.inc" -type f -exec rm \{\} \;
+
+echo "Done"
+

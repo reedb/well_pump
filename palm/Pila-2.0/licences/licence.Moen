@@ -1,0 +1,97 @@
+From rick Fri Dec  8 11:00:14 2000
+Date: Fri, 8 Dec 2000 11:00:14 -0800
+To: fluff@geocities.com
+Cc: michael@odo.boeblingen.netsurf.de, darrin@massena.com,
+	wesc@ricochet.net, wesc@microsoft.com, neild@rpi.edu
+Subject: Licence status of the Pila source code
+Message-ID: <20001208110014.I20778@linuxmafia.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+User-Agent: Mutt/1.2.5i
+Status: RO
+Content-Length: 3987
+Lines: 81
+
+Hello, Mikael and others.  I maintain an archive of all open source 
+PalmOS software at http://linuxmafia.com/pub/palmos/ , and am the
+software-licensing expert for my employer, VA Linux Systems, Inc.
+(for whom I don't speak).
+
+I've had Mikael's Unix source code version of Pila (based on Paul McKee's 
+original work, with contributions by Darrin Massena, Michael Dreher, Wes
+Cherry, and Damien Neil) in my archive, but recently noticed that it has
+no licence.
+
+The point of this e-mail is to try to fix that.
+
+Some legal fundamentals:  Whenever someone creates a piece of software,
+or changes someone else's software to which he has lawful access, he 
+automatically gains copyright over his work.  (This occurs regardless 
+of whether he ever inserts a copyright notice.)  Copyright is a 
+legally-granted monopoly over distribution, use, and creation of derived
+works.
+
+The copyright holder may choose, as Paul McKee did, to make his
+copyrighted work available to others, e.g., by putting it up for public
+ftp.  Doing so implies an (unwritten) licence, granted to any members 
+of the public who lawfully retrieve it, to use, compile, and modify
+the code, and also to distribute patches for it.[1]  However, it does
+not automatically grant the right to redistribute the original work,
+or to distribute modified versions ("derived works").[2]
+
+That is precisely where McKee inadvertantly created a problem for his
+successors, back in 1986:  If he ever granted any additional licence
+rights, I can find no record of that.  Licences _can_ be granted orally
+or via conduct of the copyright-holder -- they don't technically need to
+be in writing -- but I can find no record of McKee doing this.  Standard
+grants of extra permissions include (among others) the various
+open-source licences you'll see listed at
+http://www.opensource.org/licenses/ .
+
+Because of McKee's omission, the rest of you didn't have his permission
+to create and distribute derived works, e.g., your subsequent Pila
+versions.  Or did you have permission?  If McKee ever said or wrote
+anything to you folks blessing your project, please write back and 
+say so.  (Thanks!)
+
+One would ordinarily see copyright notices in the source archive for 
+Darrin Massena, Michael Dreher, Wes Cherry, Damien Neil, and
+Mikael Klasson's subsequent work.  Michael Dreher is mentioned in a
+module and thanked in the ReadMe, but has no copyright notice.  Wes
+Cherry is also thanked in the ReadMe, but has no copyright notice.
+Damien Neil's porting work is credited on Web pages but mentioned
+nowhere in the source archive.  Mikael Klasson is current project 
+maintainer, but has no copyright notice.  
+
+Regardless, fixing Pila's licence status requires permission of some sort
+from all five of those people plus McKee.  Given McKee's 1986 date
+stamps on his work, he may be unreachable.  So:  Anything you gentlemen
+can recall, or send, that might constitute permission from each of the
+six of you (including McKee) would be extremely useful.
+
+All of this may strike you as silly and obsessive -- and it's certainly
+not an earth-shaking concern -- but it means that _technically_ the use
+and distribution of your package is in violation of copyright until it's
+fixed.  
+
+I've classified Pila in http://linuxmafia.com/pub/palmos/proprietary/ ,
+for now.  (See the footnote at the bottom of the directory catalogue,
+http://linuxmafia.com/pub/palmos/proprietary/00index.txt .)
+
+Thank you in advance for any help you can give.
+
+
+[1] Creating and distributing patches does not, in copyright law terms,
+create a "derived work", but rather is considered commentary on the
+original work, under the "fair use" provisions.
+
+[2] This is outlined in USA copyright law in the Copyright Act, at
+17 USC 117, as programmer Daniel J. Bernstein points out on
+http://cr.yp.to/softwarelaw.html
+
+-- 
+Cheers,                                      "Reality is not optional."
+Rick Moen                                             -- Thomas Sowell
+rick@linuxmafia.com
+

@@ -1,0 +1,101 @@
+From paulmc@microsoft.com Tue Jan 09 11:04:44 2001
+Return-path: <paulmc@microsoft.com>
+Envelope-to: rick@linuxmafia.com
+Delivery-date: Tue, 09 Jan 2001 11:04:44 -0800
+Received: from mail3.microsoft.com ([131.107.3.123])
+	by uncle-enzo.linuxmafia.com with smtp (Exim 3.12 #1 (Debian))
+	id 14G44Z-0008PD-00
+	for <rick@linuxmafia.com>; Tue, 09 Jan 2001 11:04:44 -0800
+Received: from 157.54.9.100 by mail3.microsoft.com (InterScan E-Mail VirusWall NT); Tue, 09 Jan 2001 11:02:59 -0800 (Pacific Standard Time)
+Received: by inet-imc-03.redmond.corp.microsoft.com with Internet Mail Service (5.5.2651.58)
+	id <CT53XSMV>; Tue, 9 Jan 2001 10:56:18 -0800
+Message-ID: <97594C4329920846AED4449451F688F30182DD28@red-msg-03.redmond.corp.microsoft.com>
+From: Paul McKee <paulmc@microsoft.com>
+To: "'rick@linuxmafia.com'" <rick@linuxmafia.com>
+Subject: RE: [Fwd: Trying to find Paul McKee of Dept. of Electrical & Comp
+	uter  Engineering]
+Date: Tue, 9 Jan 2001 10:56:29 -0800 
+X-Mailer: Internet Mail Service (5.5.2651.58)
+Status: RO
+Content-Length: 3139
+Lines: 78
+
+Sorry.  A well-timed reminder.  
+
+Please consider 68kasm (my original version for the 68000) public domain.
+
+Paul McKee
+
+
+
+-----Original Message-----
+From: 'rick@linuxmafia.com' [mailto:rick@linuxmafia.com]
+Sent: Tuesday, January 09, 2001 10:53 AM
+To: Paul McKee
+Subject: Re: [Fwd: Trying to find Paul McKee of Dept. of Electrical &
+Computer Engineering]
+
+
+Mr. McKee, I hate to pester you, but you are the last of six programmers
+whose brief statements of permission will fix the Pila project's
+defective license.  If you have a minute to spare, a one-line response
+would meet that need.  E.g. "Please consider 68kasm public domain" or
+"Please consider 68kasm BSD-licensed."
+
+Thank you for your time.
+
+-- Rick M.
+
+
+----- Forwarded message from "'rick@linuxmafia.com'" <rick@linuxmafia.com>
+-----
+
+Date: Fri, 5 Jan 2001 16:28:08 -0800
+From: "'rick@linuxmafia.com'" <rick@linuxmafia.com>
+To: Paul McKee <paulmc@microsoft.com>
+Subject: Re: [Fwd: Trying to find Paul McKee of Dept. of Electrical & Comp
+uter  Engineering]
+
+Hello, Mr. McKee.  Thanks for returning my note.
+
+Some programmers working on PalmOS (the operating system of PalmPilots
+and compatibles) found your 68kasm code useful as the basis of a PalmOS
+assembler, which they named Pila, which has become quite successful and
+ubiquitous.  (PalmOS runs on Motorola Dragonball processors, which are
+apparently cousins of the 68k series.)  Pila is currently maintained by
+Mikael Klasson, at http://mklasson.cjb.net/pilot.html .
+
+Recently, I and others have been helping PalmOS developers deal with
+licensing issues.  This involved contacting the credited authors and 
+documenting what license terms they wished to specify for their work, 
+so that the composite work's overall license status could be determined.
+Those authors have elected to declare that their contributions should be
+considered public domain.
+
+I should stress that this is _not_ an ideological quest:  Neither I nor
+anyone else is lobbying for any particular license terms.  It's just 
+that, technically, a work with no license statement occupies an uneasy
+legal position, and is believed to be technically illegal to
+redistribute.  (In the unlikely event you're interested in details, I 
+can provide references.)
+
+Since Pila is, in copyright-law language, a derivative work of your
+68kasm codebase, its license status hinges on 68kasm's.  And 68kasm
+emerged in the days when people were casual about such things, and thus
+has a copyright notice but no explicit license.
+
+Therefore:  What I was thus hoping was that you wouldn't mind stating by
+reply e-mail what license terms you (as copyright holder) intend for the
+68kasm codebase.  You could, for example, state "I am hereby placing
+68kasm in the public domain."  But it's entirely up to you, of course.
+
+Thank you very much for your time and assistance.  (I will also have to 
+thank Dr. Miller!)
+
+-- 
+Cheers,              "It ain't so much the things we don't know that get us
+Rick Moen            in trouble.  It's the things we know that ain't so."
+rick@linuxmafia.com             -- Artemus Ward (1834-67), U.S. journalist
+
+----- End forwarded message -----
+

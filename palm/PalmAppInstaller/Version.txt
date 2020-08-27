@@ -1,0 +1,7 @@
+[FileInfo]
+Company     = Sony Corporation
+Application = PalmAppInstaller
+Version     = 1.40.040108.1
+Destination = US/GVD/CEL1/CEL2
+Language    = Eng
+Misc        =

@@ -1,0 +1,82 @@
+############################################################################
+# bash script to encode PILA Version 2.0 SDK
+# using Palm OS SDK 5.0.1 and Sony SDK 5.0 Version 1.2
+# for easy distribution without copyright hassles.
+#
+# This script assumes that the Palm OS SDK (palmos-sdk-5.0.1.tar.gz)
+# and optionally the Sony SDK (cliesdk50e.zip) are in the same directory
+# as this script and that the directory ../inc holds the current Pila SDK.
+#
+# It creates the files pila-palm-sdk-5.zip and pila-sony-sdk-5.zip for
+# distribution with the rest of the Pila package.
+#
+# Author: Frank Schaeckermann, August 2003
+############################################################################
+
+# cleaning up first - just in case the last run didn't complete
+rm -fR ./sdk-5 ./Sony\ SDK\ Support ./inc ./transform-list ./pila-sdk-5.zip
+
+size=`ls -l ./palmos-sdk-5.0-1.tar.gz 2>&1 | awk '{ printf "%s",$5 }'`
+if [[ "$size" == "430914" ]]
+then
+  # getting the header files from the Palm OS SDK unpacked
+  echo Unpacking Palm OS SDK 5.0-1
+  tar -xzf ./palmos-sdk-5.0-1.tar.gz
+else
+  echo "*** Either no Palm OS SDK 5.0 was found or it doesn't have the right size."
+  echo "*** procressing will be aborted."
+  exit 0
+fi
+
+# check if the Sony SDK 5.0 is available and has the right size
+size=`ls -l ./cliesdk50e.zip 2>&1 | awk '{ printf "%s",$5 }'`
+if [[ "$size" == '1052358' ]]
+then
+  # file is there and has the right size so we can unpack it
+  echo Unpacking Sony SDK 5 Version 1.2
+  unzip ./cliesdk50e.zip >/dev/null
+  # since it isn't exactly where we need it, we
+  # just move the part we need into the right place
+  mv ./Sony\ SDK\ Support/R5.0/Incs ./sdk-5/include/Sony
+  # and throw the rest of it away 
+  rm -fR Sony\ SDK \Support
+
+  # check if the Sony SDK 3.0 is available and has the right size
+  size=`ls -l ./cliesdk30e.zip 2>&1 | awk '{ printf "%s",$5 }'`
+  if [[ "$size" == '947027' ]]
+  then
+    # file is there and has the right size so we can unpack the files we need
+    echo Unpacking Sony SDK 3
+    unzip -j ./cliesdk30e.zip */SonyMsaLib.h */SonyCapLib.h */SonySndLib.h -d sdk-5/include/Sony/Libraries >/dev/null
+  else
+    echo "*** Either the Sony SDK 3.0 was not found or had the wrong size."
+    echo "*** Encoded SDK files for SonyCapLib.h, SonySndLib.h and SonyMsaLib.h will not be generated." 
+  fi
+else
+  echo "*** Either the Sony SDK 5.0 was not found or had the wrong size."
+  echo "*** Encoded SDK files for Sony will not be generated."
+fi
+
+# now we add the current Pila SDK into the just created directory tree
+echo Copying Pila SDK
+cp -R ../inc/* ./sdk-5/include/
+
+# and create a list of all the *.inc files we have to encode now
+echo Creating tranform list
+find sdk-5 -name "*.inc" >./transform-list
+  
+# For that we run the encode-sdk program with that list. It will create
+# a *.sdk file from each *.inc file that has an according *.h header file
+echo Transforming .inc to .sdk
+./transform-sdk ./transform-list
+
+# now we pack all the encoded *.sdk files for distribution
+echo Packing Palm OS specific encoded *.sdk files
+zip -r9 ./pila-sdk-5.zip sdk-5/* -i *.sdk >/dev/null
+
+# and remove everything else we no longer need
+echo Cleaning up
+rm -fR sdk-5 transform-list Sony\ SDK\ Support
+
+echo Done
+

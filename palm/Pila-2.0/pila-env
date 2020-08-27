@@ -1,0 +1,5 @@
+# bash
+# Setting PILAINC environment variable for pila to find the
+# system include files and the library files
+export PILAINC="~/PalmDev/Pila-2.0/lib:~/PalmDev/Pila-2.0/inc"
+

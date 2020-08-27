@@ -1,0 +1,66 @@
+From darrin@massena.com Fri Jan 05 22:32:17 2001
+Return-path: <darrin@massena.com>
+Envelope-to: rick@linuxmafia.com
+Delivery-date: Fri, 05 Jan 2001 22:32:17 -0800
+Received: from sense-darrinm-233.oz.net ([216.39.161.233] helo=server2.massena.com)
+	by uncle-enzo.linuxmafia.com with esmtp (Exim 3.12 #1 (Debian))
+	id 14Emtl-0002Et-00
+	for <rick@linuxmafia.com>; Fri, 05 Jan 2001 22:32:17 -0800
+Content-Class: urn:content-classes:message
+Subject: RE: Your licence terms for Pila
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Date: Fri, 5 Jan 2001 22:31:42 -0800
+X-MimeOLE: Produced By Microsoft Exchange V6.0.4417.0
+Message-ID: <998BEC2227C55F438B912BC48BE0D822D844@server2.massena.com>
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+Thread-Topic: Your licence terms for Pila
+Thread-Index: AcB3j4o6HnebsKwDSq6pWr5dot3xQQAGiaIQ
+From: "Darrin Massena" <darrin@massena.com>
+To: "Rick Moen" <rick@linuxmafia.com>
+Status: RO
+Content-Length: 1307
+Lines: 38
+
+I hereby place my work on Pila in the public domain!
+
+P.S. good job tracking everybody down.
+
+-----Original Message-----
+From: Rick Moen [mailto:rick@linuxmafia.com]
+Sent: Friday, January 05, 2001 7:20 PM
+To: Darrin Massena
+Subject: Your licence terms for Pila
+
+
+Darrin:
+
+Just a reminder:  You have some source code modules in the Pila
+assembler, a work whose licence status I'm trying to help Mikael=20
+Klasson (the current maintainer) straighten out.  But we don't yet
+have your licence terms for your work.
+
+I've gotten statements from Mikael Klasson, Damien Neil, Wes Cherry,
+and Michael Dreher that they wish their contributions to be in the
+public domain.  All of those authors' statements have been added to
+the source-code archive.  Also, I've just now succeeded in reaching Paul
+McKee, author of 68kasm, on which Pila is based.
+
+That leaves you.  Would you mind stating your licence terms for your
+work?  A simple "I hereby place my work on Pila in the public domain"
+would be one such statement.  You can do so by just replying to this
+mail.
+
+Thanks for your help.
+
+--=20
+Cheers,              "It ain't so much the things we don't know that get
+us
+Rick Moen            in trouble.  It's the things we know that ain't
+so."
+rick@linuxmafia.com             -- Artemus Ward (1834-67), U.S.
+journalist
+

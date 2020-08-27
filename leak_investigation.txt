@@ -1,0 +1,10 @@
+Fri 31 Jul 2020 - Leak has been isolated to the road segment. 
+
+Leak rate is 30 gallons/hour
+
+Sat  1 Aug 2020 - Leak is not in pump segment. Leak can be heard clearly at pump segment shutoff valve.
+Leak is at PVC MPT fitting connected to check valve just outside of pump house.
+
+Dug out foundation of well house, northwest corner. Removed bronze check valve and bronze shutoff valve.
+Replaced with PVC valve. Added PVC valve to stand pipe inside well house.
+Alder tree root system caused break. Will remove. 

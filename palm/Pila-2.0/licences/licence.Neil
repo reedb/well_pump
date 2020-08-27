@@ -1,0 +1,36 @@
+From neild@molokai.nominum.com Thu Dec 21 16:12:27 2000
+Return-path: <neild@molokai.nominum.com>
+Envelope-to: rick@linuxmafia.com
+Delivery-date: Thu, 21 Dec 2000 16:12:27 -0800
+Received: from molokai.nominum.com ([204.152.187.90])
+	by uncle-enzo.linuxmafia.com with esmtp (Exim 3.12 #1 (Debian))
+	id 149Fow-00038a-00
+	for <rick@linuxmafia.com>; Thu, 21 Dec 2000 16:12:27 -0800
+Received: (from neild@localhost)
+	by molokai.nominum.com (8.11.1/8.11.1) id eBM0CHN19250
+	for rick@linuxmafia.com; Thu, 21 Dec 2000 16:12:17 -0800 (PST)
+	(envelope-from neild)
+Date: Thu, 21 Dec 2000 16:12:15 -0800
+From: Damien Neil <neild@misago.org>
+To: Rick Moen <rick@linuxmafia.com>
+Subject: Re: Pila licensing
+Message-ID: <20001221161214.C54251@misago.org>
+References: <20001221152140.A9547@linuxmafia.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+User-Agent: Mutt/1.2.5i
+In-Reply-To: <20001221152140.A9547@linuxmafia.com>; from rick@linuxmafia.com on Thu, Dec 21, 2000 at 03:21:40PM -0800
+Status: RO
+Content-Length: 299
+Lines: 8
+
+On Thu, Dec 21, 2000 at 03:21:40PM -0800, Rick Moen wrote:
+> Hi, there.  Are you the Damien Neil who ported the PalmOS Pila compiler
+> to Unix?  
+
+Yes I am.  The work needed to do this was quite minimal, and I hereby
+place any changes I made in the public domain.
+
+                         - Damien
+

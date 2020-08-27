@@ -1,0 +1,43 @@
+PumpTec Software: http://apps.franklin-electric.com/sw/pumptec/PumpTec.asp
+
+Franklin Electric Pumptec Palm® software requires the HotSync Manager 6.01 program to be installed on your Palm® device. 
+You can check your version by right clicking on the HotSync icon on your PC and selecting About. 
+
+Pumptec software for your Pocket PC Requires devices (PDA) that run Windows mobile 4.0 or 5.0 or devices run 
+Windows Mobile 5.0 for Smart Phones. 
+
+Power interface:
+GND: J1 pin 2 (Pin one: left), top (component side)
++5VDC: TP3
+No indication on power up except for very brief flashing on power and voltage.
+
+
+5 pin IR interface on PumpTec:
+1 - GND, Black (LogicPort Gray Gnd)
+2 - +5VDC
+3 - RX, Red (data from PC) Active low (LogicPort Red D2)
+4 - TX, Yellow (data to PC) Active hi (LogicPort Yellow D4)
+5 - +5VDC
+
+Use LogicPort: pumptec_ir.LPF
+
+Uses IrDA PHYS layer at 2.4 KBit/s. 416.667 uS Bit Time, 1.6 uS emitter on time
+
+
+Pulse train:
+                           ~400uS 
+--------|  |--------------------------------|  |------------
+       ~1.6uS
+
+
+Packet Length: 8mS
+Packet Seperation: > 100mS
+
+Measured from PumpTec transmitter input:
+
+
+"System Status:"
+"No IR Signal"
+"Idle"
+"Under Voltage"
+"Over Voltage"

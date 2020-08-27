@@ -1,0 +1,76 @@
+Fri 31 Jul 2020 - Leak has been isolated to the road segment. 
+  Leak rate is 30 gallons/hour
+Sat  1 Aug 2020 - Leak is not in pump segment. Leak can be heard clearly at pump segment shutoff valve.
+  Leak is at PVC MPT fitting connected to check valve just outside of pump house.
+  Dug out foundation of well house, northwest corner. Removed bronze check valve and bronze shutoff valve.
+  Replaced with PVC valve. Added PVC valve to stand pipe inside well house.
+  Alder tree root system caused break. Will remove.
+
+
+Sun 24 Jan 2016, Noticed tank empty, Start capacitor failed.
+
+Current control system:
+  hardware: ~/projects/well_pump/pump_control/pump_control.sch
+  firmware: ~/projects/well_pump/pump_control/firmware/pump_control.cpp
+
+Gould ITT 7GM07412C or 7G07412C
+CentriPro 4" Single-Phase, Motor M07412 3-wire .75 230 10.8 21.4
+Full Load Amps: 7.2
+Service Factor Amps: 8.3
+Main Winding Resistance: 2.6 - 3.6
+Start Winding Resistance: 11.8 - 13.0
+Starter: CB07412G
+For details see: BMAID-R2.pdf
+
+
+Water Pressure (PSI) = 0.433 × height of water in feet
+Water Pressure (PSI) = 0.0360911906567 × height of water in inches 
+10000 gallon tank
+Full tank: 88"
+1" - 113 gallons 
+
+Loren McDonald 947-2467, 604-250-6187
+Stan Bolton 947-2049
+
+
+PumpTec Software: http://apps.franklin-electric.com/sw/pumptec/PumpTec.asp
+
+Franklin Electric Pumptec Palm® software requires the HotSync Manager 6.01 program to be installed on your Palm® device. 
+You can check your version by right clicking on the HotSync icon on your PC and selecting About. 
+
+Pumptec software for your Pocket PC Requires devices (PDA) that run Windows mobile 4.0 or 5.0 or devices run 
+Windows Mobile 5.0 for Smart Phones. 
+
+Restart pump: Thur 12 Feb 2015 ~22:30 PST
+
+Max range: 02/12/2015, 22:23:24, 1336 mm
+Min range: 02/13/2015, 03:28:33, 613 mm
+
+Tank 90 inches high bottom to overflow => 2286 mm 
+Tank circumference == 581 inches => 14757.4 mm => Radius == 2348.7 mm => 17.33 liters / millimetre height => 4.5781 gallons / millimetre height
+10466 Gallons == 39617 liters
+
+Derived from LOG_20150211_085613.csv:
+41.019 L/min = 2460 Liters / hour = 650 US Gallons / hour => 342 gallons / kWH
+over a time period of 5:05:02
+1 mm of height = 17.33 Liter
+
+
+Measured 8.3 Amps @ 230 Volts => 1.9 KW
+157.60KWh / 1.9KW = 82.55 Hours => 
+53611 gallons for the month of June
+8935 / house
+297 gallons per house per day
+
+1 Liter = 0.264 US Gallons
+
+The well is 105' deep and the majority of the water comes in at 85'. The static water level in the well is at 15'. 
+
+Well Bore Level Data:
+8-19-15:37'
+8-23-15:35'
+8-24-15:33'
+1-25-16:64'
+5-8-16:45'
+Wed 12 Jul 2017 17:11:17 PDT:25.55'
+Fri 21 Jul 2017 17:27:54 PDT:31.7'

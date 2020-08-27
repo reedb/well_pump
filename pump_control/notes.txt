@@ -1,0 +1,28 @@
+Well Pump Control:
+
+Well Bore Water Level sensor:
+http://www.setra.com/contact-us
+open Setra_Model_526_Data_Sheet.pdf
+What is the loop power supply minimum voltage?
+Part No. 5261060PGW211UEF - Model 526 Pressure Transducer, 60 PSI, Gauge Pressure, Stainless Steel Sink Weight Nose Cone, 4-20 mA Output, 30 meters Molded Immersible Cable, 0.25% Accuracy.
+
+
+Tank Water Level sensor:
+Dwyer Series SBLT2 Lightning & Surge Protected Submersible Level Transmitter
+5 psi, 4-20 mA Output, Dwyer Instruments SBLT2-5-40 
+
++----------------+-----+-----+-----+-----+-----+-----+
+| LCD pin name   | RS  | EN  | DB4 | DB5 | DB6 | DB7 |
++----------------+-----+-----+-----+-----+-----+-----+
+| Arduino Pin    | D10 | D9  | D3  | D4  | D5  | D6  |
++----------------+-----+-----+-----+-----+-----+-----+
+
+Water: 0.4327 psi / foot
+
+A0 - Tank, 4-20ma,  5 PSI, 
+A1 - Well, 4-20ma, 60 PSI, 
+
+10.76 ma - 4ma = 676 = 2.36 PSI = 5.5 feet = 66"
+Full tank: 88" = 7.33' = 3.17 psi = 14.14 ma
+5 PSI = 1600
+0 PSI = 0

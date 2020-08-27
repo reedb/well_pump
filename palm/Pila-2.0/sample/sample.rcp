@@ -1,0 +1,50 @@
+#include "sampleRcp.inc"
+
+MENU kidmMain
+BEGIN
+    PULLDOWN "Options"
+    BEGIN
+        MENUITEM "About Sample..." kidmAbout "A"
+    END
+END
+
+FORM kidfMain 0 0 160 160
+USABLE
+NOFRAME
+MENUID kidmMain
+BEGIN
+    TITLE "Sample"
+
+    LABEL "Decimal:" 2000 30 30 FONT 1
+    FIELD kidcDecimal PREVLEFT PREVTOP+10 50 AUTO UNDERLINED EDITABLE SINGLELINE MAXCHARS 10
+    LABEL "Hex:" 2001 100 30 FONT 1
+    FIELD kidcHex PREVLEFT PREVTOP+10 50 AUTO UNDERLINED EDITABLE SINGLELINE MAXCHARS 8
+    BUTTON "Convert" kidcConvert CENTER CENTER AUTO AUTO
+    GADGET ID kidcGadget AT (10 PREVBOTTOM+20 140 10)
+    GRAFFITISTATEINDICATOR 0 150
+END
+
+ALERT kidrAboutAlert
+INFORMATION
+BEGIN
+    TITLE "About Sample"
+    MESSAGE "This sample application was written using the Pila assembler. For more information see http://www.massena.com/darrin/pilot"
+    BUTTONS "Cool!"
+END
+
+ALERT kidrInputErrorAlert
+ERROR
+BEGIN
+    TITLE "Oops"
+    MESSAGE "Please write a number to be converted."
+    BUTTONS "OK"
+END
+
+ALERT kidrRangeErrorAlert
+ERROR
+BEGIN
+    TITLE "Oops"
+    MESSAGE "Your number is out of range. Use decimal values in the range of -32767 to 32768 and hexidecimal values in the range from 0 to FFFF."
+    BUTTONS "OK"
+END
+

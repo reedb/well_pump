@@ -1,0 +1,196 @@
+Pila 2.0
+
+By Darrin Massena (darrin@massena.com)
+27 Oct 1996
+Modifications by Mikael Klasson (fluff@geocities.com)
+18 Mar 1998
+Modifications by Frank Schaeckermann (frmipg602@sneakemail.com)
+23 Jul 2003
+
+------------------------------------------------------------------------------
+
+Pila is a 68000 assembler that runs under Windows 95/NT and Linux and
+produces Palm OS executables. Documentation for Pila is in the HTML file
+pila-user-manual.html which you should definitely read - even if you know
+Pila from previous versions!!!
+
+You can get the Pila distribution archive Pila-2.0.zip from
+http://www.schaeckermann.net/pila.html.
+
+Once you downloaded it to your harddrive use any unzip command (i.e. infozip's
+unzip - availabe for Linux and Windows) to install the contents of the archive
+into any directory of your liking (i.e. ~/PalmDev). This will create a sub-
+directory Pila-2.0 containing the documentation, sample code, the binary
+executable pila20 as well as all the source code for you to compile your own
+binary. Read the documentation in pila-user-manual.html for details about all
+the files in the package.
+
+------------------------------------------------------------------------------
+
+I have used Pila Version 2.0 to create a fairly good-sized project (10KB
+of assembled code) and I am pretty sure that it is stable enough and produces 
+valid PRCs. Nevertheless I haven't tested it much with intentionally wrong
+source code (only unintentionally wrong source which offen enough made Pila
+crash - but those problems are fixed *wink*). Therefore there might still
+be incidents of Pila hick-uping on some wrong source. If you encounter any
+such problem send me the offending source code and whatever else I'll need
+to feed it through Pila and I will make sure you'll get a corrected Pila
+as fast as I can manage.
+
+Also if you have any suggestions on how to improve anything in the Pila
+package (the program, documentation, this readme, etc) please drop me a
+line at frmipg602@sneakemail.com.
+
+You will definitely want to get the PilRC tool from Aaron Ardiri's site
+http://www.ardiri.com/index.php?redir=palm&cat=pilrc to compile *.rpc files
+into PalmOS resources. That tool is not part of this package.
+
+SPECIAL NOTES
+
+- I have been using the CYGWIN tools to compile and run Pila on my Windows 2000
+  machine. Which means I was effectively compiling and running a Unix program.
+  Naively trying to compile Pila with -Uunix to create a windows executable
+  did not work due to missing external references like htonl etc. I didn't spend
+  much time on it and I am sure anybody wanting to create a windows executable
+  will figure that out fairly quickly.
+  It should still be possible to compile Pila for Windows within the right
+  environment since I didn't change anything on the "#if unix" constructs
+  found in the original source. If there ARE some changes necessary to allow
+  compiling a native Windows executable and you have done them, PLEASE send
+  me the changes for me to include them in the package!
+
+- Pila sometimes reports the compressed size of an application's data 
+  section as being larger than the uncompressed size! This is due to the
+  overhead the PalmOS' compression format introduces. When the total size 
+  of your data adds up to more than 50 bytes or so, the compressed size 
+  should normally be smaller.
+
+------------------------------------------------------------------------------
+
+Thinks to do to make Pila even better (in no particular order):
+
+- overhaul of the symbol code to generalize the concept of symbol context
+  (see source/symbol.c for details of my ideas here)
+- add the possiblity to split a source line over multiple lines via 
+  line-continuation (\). It is not as easy as it sounds since I don't want
+  to loose the synchonization of written bytes and listed source lines in the
+  listing output produced with the option -l.
+- look at the FIXME: notes in the user's manual for some smaller tid bits
+- make Pila read - and understand *wink* - the original C header files
+- macro and function support (call, proc etc are macros already - more or less)
+- add ARM assembly to be able to create PNOlets as well
+  (I am really looking forward to this one)
+- add multi-segment support
+- create symbol map for source debugging support
+- provide functionality to include compiled static libraries into the PRC
+  built by Pila absorbing the symbol definitions from the library at the
+  same time. The incbin directive can only read binary chunks byte by byte
+  as they appear in the file. (this is a pretty important one)
+
+------------------------------------------------------------------------------
+
+REVISION HISTORY
+
+ALPHA 1 (7 Aug 1996)
+- First release!
+
+BETA 1 (10 Sep 1996)
+- added Wes Cherry's PilRC (0.71), a tool for creating Pilot resources,
+  to the Pila package
+- added Bill Hunt's PilDis (Alpha 1), a tool for disassembling Pilot
+  code resources
+- added Sample.rcp file to demonstrate resource creation. Sample.rcp
+  replaces mbar1.bin and tfrm1.bin which are removed
+- added Sample.bat file to build Sample.prc
+- added special equates to Pilot.inc for the serial library APIs
+- implemented source file name printing in error messages
+- implemented a statistics dump after successful assembly. Displays
+  sizes for code, data, resource, and the entire PRC. Keep those PRCs
+  small!
+- implemented a very minor Startup.inc optimization
+- fixed bug that was causing line numbers to be offset by one inside
+  include files and off by another one in the 'including' file
+- fixed a HUGE bug that caused the data section and A5 register to be
+  improperly initialized
+- updated Sample.asm to demonstrate data section access (amongst other
+  things)
+- updated PilaUM.htm to incorporate various suggestions I received
+  from Alpha testers, including a new section on the PalmOS API
+  calling convention and a pointer to an online version of the
+  Motorola 680x0 Programmer's Reference Manual -- get it!
+
+Beta 2 (2 Oct 1996)
+- added 'align' directive for aligning code/data on user-defined boundaries
+- added 'list' directive for enabling/disabling listing output
+- added include path support via PILAINC environment variable
+- added Copilot-compatible code symbol generation. Specify "-s" and your
+  app's code symbols will be available while debugging under Copilot
+- updated Startup.inc to use Wes' new directives (see below)
+- updated documentation
+- changed all errors to be output to stdout, rather than a mix of stdout/
+  stderr
+- added Wes Cherry's PilRCUI, a tool for previewing Pilot form resources,
+  to the Pila package
+- updated to Wes Cherry's PilRC version .8
+
+Wes Cherry has been extending Pila and has added many new features to make
+assembly language programming easier and less bug-prone. His new directives
+and syntax support procedure parameter definition, procedure calling, trap
+calling, local and global variable definition, and structure definition and
+usage. Wow!
+
+- the new directives are: call, systrap, syslibtrap, local, global, proc,
+  beginproc, endproc, struct, endstruct, and sizeof
+- added documentation for new directives to PilaUM.htm! Updated examples,
+  etc to show new syntax
+- Pila names (e.g., labels, equates) are now case sensitive. Instructions
+  and directives remain case insensitive
+- updated Pilot.inc to use the new structure syntax. Several incorrect
+  structure member offsets were fixed in the process
+- updated Sample.asm to use the new directives
+- fixed the 'end' directive to work as it should and be optional
+
+Beta 3 (2 Nov 1996)
+- incorporated Pila into the ASDK package. No more separate Pila releases
+- added '-t' command line switch to set PRC type
+- fixed problems in Pilot.inc where fields containing small enumerations 
+  were incorrectly sized as words instead of bytes
+- added an 'align 2' directive to be emitted after each debug symbol
+  ('-s' switch)
+- fixed DATA 0 resource format to be compatible with future PalmOS upgrades
+- fixed other small bugs
+
+Beta 3 Fluff 4 (23 Jan 1998)
+This is not an "official" release. I, Mikael Klasson (fluff@geocities.com),
+have made the following extensions and so you should blame me for any bugs 
+and stuff like that concerning them. They're not Darrin's fault ;)
+- labels are local to the procedure if they start with a dot, e.g ".loop"
+- a new directive, "incbin", allows you to include binary files straight 
+  into your prc file
+- implemented compression of the datasection
+- fixed a bug with "ds.T X". Even if X was more than 1, only the first
+  sizeof(T) bytes were initialized to zero
+
+Beta 3 Fluff 5 (02 Feb 1998)
+Linux fixes by Michael Dreher (michael@odo.boeblingen.netsurf.de)
+- the PILAINC environment variable works under Linux as well
+- Pila compiles with fewer warnings under Linux
+
+Beta 3 Fluff 6 (12 Feb 1998)
+More Linux fixes by Michael Dreher (michael@odo.boeblingen.netsurf.de)
+- gcc -Wall produces no warnings whatsoever now
+- should, perhaps, with some luck, work well even under big-endian machines
+
+Beta 3 Fluff 7 (18 Mar 1998)
+Misc fixes by Mikael Klasson (fluff@geocities.com) and Michael Dreher
+(michael@odo.boeblingen.netsurf.de)
+- defining an address operand like (a6,6) instead of 6(a6) caused the 
+  assembler to crash
+- spaces in expressions didn't work very well
+- compiles without warnings using glibc
+- eliminated a few potential sources of bugs
+
+Pila Version 2.0 (23 Jul 2003)
+Major overhaul of Pila by Frank Schaeckermann (frmipg602@sneakemail.com)
+Please read the pila-user-manual.html since sooooo many things changed...
+

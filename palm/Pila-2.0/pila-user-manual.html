@@ -1,0 +1,2741 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.79 [en] (Windows NT 5.0; U) [Netscape]">
+   <title>Pila Version 2.0 User's Manual</title>
+</head>
+<body text="#000000" bgcolor="#FFFFFF">
+<TABLE WIDTH="100%">
+<TR>
+<TD><img src="Pila-Icon.jpg"></TD>
+<TD WIDTH="100%"><CENTER><H2><b>Pila Version 2.0 User' Manual</b></H2></CENTER></TD>
+<TD><img src="Pila-Icon.jpg"></TD>
+</TR>
+</TABLE>
+
+<center>
+<p>Based on the work of <a href="mailto:darrin@massena.com">Darrin Massena</a>
+(darrin@massena.com)
+<br>27 Oct 96
+<p>and enhancements by <a href="mailto:wesc@ricochet.net">Wes Cherry</a>
+(wesc@ricochet.net)
+<br>and <a href="mailto:fluff@geocities.com">Mikael Klasson</a> (fluff@geocities.com)
+<br>18 Feb 98
+<p>with major additions for version 2.0
+<br>by <a href="mailto:frmipg602@sneakemail.com">Frank Schaeckermann</a>
+(frmipg602@sneakemail.com)
+<br>(I know it's a horrible address but necessary
+<br>to be able to keep the spam in check)
+<br>23 Jul 2003
+</center>
+<p>
+<hr noshade>
+<p>
+<h3>Changes from Version 1.0 Beta 3 fluff 7 to Version 2.0</h3>
+
+<ul>
+  <li>no hardcoded maximum line size anymore to eliminate the possible buffer overrun
+      errors for long source lines (I haven't managed yet to make it possible to split
+	  one source line over multiple physical text lines but I am working on it)</li>
+  <li>the elemination of the pre-processing code in pp.c (by changing the
+   evaluation routine to understand composite symbols and incorporating the
+   directive names as op-codes into the instruction-code table)
+    <ul>
+      <li>structures, unions, enums and references to their members are computed directly</li>
+      <li>the same evaluation is used for all expressions - no different behaviour in
+          different places anymore as it was before (like op-code operands versus
+          call parameters)</li>
+    </ul>
+  </li>
+  <li>allowing to pre-define a procedure entry (with the new directives procdef
+      and trapdef) and it's parameters, doing away with the requirement of
+      specifying the size of the parameters with each call to any trap or
+      procedure (what a relief) and if possible, Pila even checks if your supplied
+	  parameters have the right size to call the procedure or trap with!
+  </li>
+  <li>Other additional directives (i.e. conditional assembly) and type support:
+    <ul>
+      <li>typedef</li>
+      <li>union, endunion</li>
+      <li>enum, endenum</li>
+      <li>if, ifdef, ifndef, else, endif</li>
+      <li>proxy, endproxy</li>
+    </ul>
+The types are only used to deduce the SIZE of an operand. That way an instruction like
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp;move.w someplace(a5),d0</tt>
+<br>will produce a warning if 'someplace' is defined as something with
+a size other than 2. A warning is also issued if 'someplace' is anything
+else than a global variable since only those should be offset using a5.
+More generally every use of any symbol is being checked to use the appropriate
+offset register and - if possible - to have the appropriate size associated
+with it. This feature helped me avoid A LOT of bugs!!!
+  </li>
+  <li>Modified syntax of directives
+    <ul>
+      <li>call</li>
+      <li>systrap</li>
+      <li>syslibtrap</li>
+        The specification of the length (.b, .w or .l) for each parameter in a
+        call/systrap/syslibtrap is not necessary anymore since Pila is keeping track of
+        it itself and is even checking your parameters to have the right size. Also all
+        three directives are now doing exactly the same thing and the use of systrap
+        and syslibtrap is depricated. Use call instead!
+      <li>dc</li>
+        The specification of a string initializer in the dc directiv requires double quotes
+        to avoid confusion with the string constant which is single-quoted and has a maximum
+        length of 4 characters.
+    </ul>
+  </li>
+  <li>Changes to expression evaluation
+    <ul>
+      <li>referencing of structure members computed directly in function evaluate(...)</li>
+      <li>additional operators for comparison and boolean expressions</li>
+      <li>evaluation keeps track of type and kind of value (code or data or constant)<br>
+          This additional information is used to check operand size and call
+          parameter types if possible
+      </li>
+    </ul>
+  </li>
+</ul>
+<p>All this required two things:
+<ol>
+  <li>Pila had to become a 3-path assembler</li>
+  <li>with Pila you now need a set of include files containing all the
+    structures, unions, types and trap-definitions found in the Palm OS SDK
+	(see <a href="#AppendixB">Appendix B</a> for a discussion of the Pila SDK).</li>
+</ol>
+<p>
+<hr noshade>
+<p>&nbsp;<p>&nbsp;<p>&nbsp;<p>&nbsp;
+<p>&nbsp;<p>&nbsp;
+<center><h3><b>Table Of Contents</b></h3></center>
+
+<table BORDER=0 valign="top" >
+
+<tr>
+<td VALIGN=TOP>
+
+<table BORDER=0 valign="top" >
+
+<tr>
+<td ALIGN=LEFT WIDTH="10"><b><font size=+0>1</font></b></td>
+<td WIDTH="25">&nbsp;</td>
+<td ALIGN=LEFT><b><font size=+0><a href="#HeadPila">Pila</a></font></b></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>1.1</font></td>
+<td><font size=-1><a href="#Introduction">Introduction</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>1.2</font></td>
+<td><font size=-1><a href="#PilaPackage">The Pila Package</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>1.3</font></td>
+<td><font size=-1><a href="#PilRC">PilRC</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>1.4</font></td>
+<td><font size=-1><a href="#Debugger">Emulator &amp; Debugger</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>1.5</font></td>
+<td><font size=-1><a href="#MinimalApp">Creating A Minimal Pilot Application
+With Pila</a></font></td>
+</tr>
+
+<tr>
+<td COLSPAN="3">&nbsp;</td>
+</tr>
+
+<tr>
+<td ALIGN=LEFT WIDTH="10"><b><font size=+0>2</font></b></td>
+<td WIDTH="25">&nbsp;</td>
+<td ALIGN=LEFT><b><font size=+0><a href="#PilaSyntax">Pila Syntax</a></font></b></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>2.1 </font></td>
+<td><font size=-1><a href="#CommandLine">Pila Command-Line Syntax</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>2.2</font></td>
+<td><font size=-1><a href="#StatementFormat">Statement Format</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>2.3</font></td>
+<td><font size=-1><a href="#Symbols">Symbols</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>2.4</font></td>
+<td><font size=-1><a href="#Constants">Constants</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>2.5</font></td>
+<td><font size=-1><a href="#Operators">Operators</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>2.6</font></td>
+<td><font size=-1><a href="#Functions">Built-in Functions</a></font></td>
+</tr>
+
+<tr>
+<td COLSPAN="3">&nbsp;</td>
+</tr>
+
+<tr>
+<td COLSPAN="3"><b><font size=+0>Appendix</font></b></td>
+</tr>
+
+<tr>
+<td WIDTH="10">&nbsp;</td>
+<td WIDTH="25"><font size=-1>A</font></td>
+<td><font size=-1><a href="#AppendixA">The Making Of Pila</a></font></td>
+</tr>
+
+<tr>
+<td WIDTH="10">&nbsp;</td>
+<td><font size=-1>B</font></td>
+<td><font size=-1><a href="#AppendixB">Pila SDK</a></font></td>
+</tr>
+
+<tr>
+<td WIDTH="10">&nbsp;</td>
+<td><font size=-1>C</font></td>
+<td><font size=-1><a href="#AppendixC">PalmOS API Calling Conventions</a></font></td>
+</tr>
+
+<tr>
+<td WIDTH="10">&nbsp;</td>
+<td><font size=-1>D</font></td>
+<td><font size=-1><a href="#AppendixD">68000 Instruction Set Quick Reference</a></font></td>
+</tr>
+</table>
+</td>
+
+<td valign="top">
+
+<table BORDER=0>
+
+<tr>
+<td ALIGN=LEFT WIDTH="10"><b><font size=+0>3</font></b></td>
+<td WIDTH="25">&nbsp;</td>
+<td ALIGN=LEFT><b><font size=+0><a href="#Directives">Pila Directives</a></font></b></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.1</font></td>
+<td><font size=-1><a href="#direct_align">align</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.2</font></td>
+<td><font size=-1><a href="#direct_appl">appl</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.3</font></td>
+<td><font size=-1><a href="#direct_beginproc">beginproc</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.4</font></td>
+<td><font size=-1><a href="#direct_call">call</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.5</font></td>
+<td><font size=-1><a href="#direct_code">code</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.6</font></td>
+<td><font size=-1><a href="#direct_data">data</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.7</font></td>
+<td><font size=-1><a href="#direct_dc">dc</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.8</font></td>
+<td><font size=-1><a href="#direct_dcb">dcb</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.9</font></td>
+<td><font size=-1><a href="#direct_ds">ds</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.10</font></td>
+<td><font size=-1><a href="#direct_else">else</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.11</font></td>
+<td><font size=-1><a href="#direct_end">end</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.12</font></td>
+<td><font size=-1><a href="#direct_endenum">endenum</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.13</font></td>
+<td><font size=-1><a href="#direct_endif">endif</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.14</font></td>
+<td><font size=-1><a href="#direct_endproc">endproc</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.15</font></td>
+<td><font size=-1><a href="#direct_endproxy">endproxy</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.16</font></td>
+<td><font size=-1><a href="#direct_endstruct">endstruct</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.17</font></td>
+<td><font size=-1><a href="#direct_endunion">endunion</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.18</font></td>
+<td><font size=-1><a href="#direct_enum">enum</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.19</font></td>
+<td><font size=-1><a href="#direct_equ">equ</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.20</font></td>
+<td><font size=-1><a href="#direct_error">error</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.21</font></td>
+<td><font size=-1><a href="#direct_extern">extern</a></font></td>
+</tr>
+
+</table>
+</td>
+
+<td valign="top">
+
+<table BORDER=0 >
+<tr><td>&nbsp;</td></tr>
+
+<tr>
+<td ALIGN=LEFT WIDTH="10"><b><font size=+0>&nbsp;</font></b></td>
+<td WIDTH="25">&nbsp;</td>
+<td ALIGN=LEFT><b><font size=+0>&nbsp;</font></b></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.22</font></td>
+<td><font size=-1><a href="#direct_global">global</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.23</font></td>
+<td><font size=-1><a href="#direct_if">if</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.24</font></td>
+<td><font size=-1><a href="#direct_ifndef">ifndef</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.25</font></td>
+<td><font size=-1><a href="#direct_ifdef">ifdef</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.26</font></td>
+<td><font size=-1><a href="#direct_incbin">incbin</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.27</font></td>
+<td><font size=-1><a href="#direct_include">include</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.28</font></td>
+<td><font size=-1><a href="#direct_list">list</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.29</font></td>
+<td><font size=-1><a href="#direct_local">local</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.30</font></td>
+<td><font size=-1><a href="#direct_proc">proc</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.31</font></td>
+<td><font size=-1><a href="#direct_procdef">procdef</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.32</font></td>
+<td><font size=-1><a href="#direct_proxy">proxy</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.33</font></td>
+<td><font size=-1><a href="#direct_reg">reg</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.34</font></td>
+<td><font size=-1><a href="#direct_res">res</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.35</font></td>
+<td><font size=-1><a href="#direct_set">set</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.36</font></td>
+<td><font size=-1><a href="#direct_struct">struct</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.37</font></td>
+<td><font size=-1><a href="#direct_systrap">systrap</a> (depricated)</font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.38</font></td>
+<td><font size=-1><a href="#direct_syslibtrap">syslibtrap</a> (depricated)</font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.39</font></td>
+<td><font size=-1><a href="#direct_trapdef">trapdef</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.40</font></td>
+<td><font size=-1><a href="#direct_typedef">typedef</a></font></td>
+</tr>
+
+<tr>
+<td>&nbsp;</td>
+<td><font size=-1>3.41</font></td>
+<td><font size=-1><a href="#direct_union">union</a></font></td>
+</tr>
+
+</table>
+</td>
+</tr>
+</table>
+
+<hr noshade="">
+<center>
+<h3>
+<a NAME="HeadPila"></a>Chapter 1: Pila</h3></center>
+<a NAME="Introduction"></a><b>1.1 Introduction</b>
+<p>Pila is a tool for developing applications written in 68000 Assembly
+Language for the Palm Pilot handheld computer. Pila combines the operations
+of assembling, resource compiling, and linking into a single program that
+takes a 68000 assembler source file with embedded or external resources
+as input and produces a Pilot executable (PRC) file as output. Pila is
+a console application and runs under Linux as well as Windows XP/NT/95.
+<p><i>Note: I haven't tested Pila 2.0 under Windows at all since all my development
+has first been done using CYGWIN and later directly under Linux. I haven't changed
+any of the <tt>#ifndef Unix</tt> parts of the code therefore it should still
+work under Windows. If anybody is willing to try and make possibly necessary
+adjustments, just send them to me for me to incorporate them into the source!</i>
+
+<p>"An assembler? Who cares about assembly language any more?" While assembly
+language has fallen out of favor for creating the kind of big, slow, bloated,
+er, I mean feature laden, applications we run on our desktop computers
+today it is exactly what is needed for maximizing performance on a constrained
+device like the Pilot. Smaller programs leave more space for our data and
+other programs. Faster programs are not only more responsive but by spending
+more time idle they increase the Pilot's battery life. Have you looked
+at the quality of the code MetroWerks' compiler for Pilot produces? Let's
+just say there's room for improvement and leave it at that.
+<p>This document details Pila's features and syntax and provides a walkthrough
+demonstration of using Pila to create a minimal Pilot application. To create
+your own applications you'll need an understanding of 68000 assembly language
+programming as well as documentation on the PalmOS and its APIs. You might
+also be interested in the architecture and details of Motorola's 68328
+microprocessor, the 68000 variant inside your Pilot.
+<p>The classic and most essential 68000 programming book in my library
+is Motorola's <i>M68000 16/32-bit Microprocessor Programmer's Reference
+Manual</i> (a.k.a. M68000UM). An online (PDF) version that also includes
+information on the rest of the 680x0 family of processors can be found
+at the Motorola site
+<a href="http://www.motorola.com">http://www.motorola.com</a>.
+This book is a great reference but will not teach you assembly language.
+To learn more you'll definitely want to check out Robert Boys'
+<a href="http://www.ee.ualberta.ca/archive/m68kfaq.html">M68K
+FAQ</a> (http://www.ee.ualberta.ca/archive/m68kfaq.html). I'm also told that
+the tutorial/reference that can be found at
+http://www.cs.cornell.edu/Info/Courses/Spring-95/CS314/toc.html is useful
+<b>(this link does not work anymore - anybody has a replacement?).</b>
+Keep in mind that the assembler and environment used for that
+course is somewhat different from Pila and the Pilot.
+<p>The <a href="http://www.palmsource.com">Palm Source site</a> (http://www.palmsource.com)
+has all the documentation they ship with their PalmOS SDK. The documentation
+covers most of what you'll want to know about the PalmOS and its APIs.
+Do not attempt any Pilot programming without first acquiring and reading
+this documentation! You'll need Adobe <a href="http://www.adobe.com/acrobat/readstep.html">Acrobat
+Reader</a> to read it.
+<p>Motorola makes the MC68328 "<a href="http://www.mot.com/SPS/HPESD/prod/3XX/68328.html">
+DragonBall</a>" integrated processor that is the heart of the Pilot and
+they have some great documentation online in PDF form. I highly recommend
+downloading and digesting the <a href="http://www.mot.com/SPS/HPESD/aesop/683XX/328/328um.pdf">MC68328
+(DragonBall) Integrated Processor User's Manual</a>. You'll need Adobe
+<a href="http://www.adobe.com/acrobat/readstep.html">Acrobat Reader</a>
+to read it.
+<p>Lastly, you should definitely check out the great
+<a href="http://www.massena.com/darrin/pilot/index.html">Pilot
+Software Development</a> site (http://www.massena.com/darrin/pilot/index.html)
+hosted by Darrin. Even if it is a little out-dated, it still contains Pilot programming
+tools, tips and tidbits, etc.
+<p>Pila used to have its own page at <a href="http://www.massena.com/darrin/pilot/pila.htm">
+http://www.massena.com/darrin/pilot/pila.htm</a> but moved to Fluff's Den (to be found
+at <a href="http://mklasson.cjb.net/">http://mklasson.cjb.net/</a>) when
+Mikael Klasson took the post as Pila guardian. Now, since Pila Version 2.0, I assumed the
+responsibilities as the Pila guardian from Mikael and moved it's home to
+<a href="http://www.schaeckermann.net/pila.html">http://www.schaeckermann.net/pila.html</a>.
+Thanks Mikael to keep this up for sooooo long!
+<p>See <a href="#AppendixA">Appendix A</a> if you would like to know more
+about the making of Pila. <a href="#AppendixB">Appendix B</a> describes
+what you need to do to get the Pila SDK *.inc include files onto your machine to use Pila
+(since the Palm OS SDK can not be redistributed by me there is a bit of work for you to do to
+convert the Palm OS SDK C header files into the Pila SDK *.inc include files!
+<p>For the curious, <a href="#AppendixC">Appendix C</a> describes the PalmOS API calling
+convention. And <a href="#AppendixD">Appendix D</a> provides a quick reference card for the 68000
+instruction set.
+<p><b>&lt;FRANK></b>
+<br>"Pila Version 2.0" has - by declaration - become the current official
+release of Pila. Since there hasn't been any development on Pila for
+years version 1.0 Beta 3 Fluff 7 was picked up as a starting point to create
+this package. There doesn't seem to be an ASDK package anymore which this
+version of Pila could be made a part of. There are however lots of other
+tools around PalmOS development and they all have evolved along their own
+path the last years. Therefore for Pila Version 2.0 and until further
+notice I will maintain Pila as it's own, independent package.
+<br><b>&lt;/FRANK></b>
+<p>The only "must have" to do development with Pila is the PilRC compiler
+to create PalmOS resources from *.rcp files. See <a href="#PilRC">PilRC</a>
+below for more information
+<p><a NAME="PilaPackage"></a><b>1.2 The Pila Package</b>
+<p>These are the files of the current Pila Version 2.0 package. By my own convention
+any file actually producing output in the data and/or code sections has an extension
+of .asm whereas 'definition-only' files have an extension of .inc.
+<br> 
+<table BORDER=1 ALIGN=LEFT VALIGN=TOP>
+
+<tr>
+<th NOWRAP>File</th>
+<th>Description</th>
+</tr>
+
+<tr>
+<td NOWRAP>makefile</td>
+<td>Makefile to compile and link Pila with the GNU compiler gcc.</td>
+</tr>
+
+<tr>
+<td NOWRAP>pila20</td>
+<td>Pila proper. pila20 acts as assembler, resource integrator, and linker</td>
+</tr>
+
+<tr>
+<td NOWRAP>pila-user-manual.html</td>
+<td>This documentation</td>
+</tr>
+
+<tr>
+<td NOWRAP>README</td>
+<td>Last minute notes you'll definitely want to read first</td>
+</tr>
+
+<tr>
+<td NOWRAP>lib/*</td>
+<td>Bits and pieces of helpful code I have put together that can be put into
+your code by using the <a href="#direct_include"><tt>include</tt></a> directive.
+See the various files for more information on their content and usage.
+<br><i>[FIXME: make sure that information is actually available in those files.]</i>
+</td>
+</tr>
+
+<tr>
+<td NOWRAP>lib/startup.asm</td>
+<td>Standard startup code that every application must include FIRST</td>
+</tr>
+
+<tr>
+<td NOWRAP>licences/*</td>
+<td>Licence statements of all developers who worked on Pila,
+making their contributions public domain.</td>
+</tr>
+
+<tr>
+<td NOWRAP>package</td>
+<td>Batch file to create the Pila-2.0.zip package file from my install directory</td>
+</tr>
+
+<tr>
+<td NOWRAP>pila-env</td>
+<td>Batch file to set the environment variable PILAINC which tells Pila where to
+look for the files referenced by the <a href="#direct_include"><tt>include</tt></a>
+directive. You will have to modify the export statement according to your installation
+and move it i.e. to your ~/.bashrc file.</td>
+</tr>
+
+<tr>
+<td NOWRAP>pila-sdk/*</td>
+<td>This directory contains the necessary files to generate the Pila SDK from the
+original C header files. See <a href="#AppendixB">Appendix B</a> for more details.</td>
+</tr>
+
+<tr>
+<td NOWRAP>sample/sample.asm</td>
+<td>A sample application converting decimal to hex and vice-versa</td>
+</tr>
+
+<tr>
+<td NOWRAP>sample/sample.rcp</td>
+<td>Sample resources, processed by PilRC to produce Pilot resource binaries</td>
+</tr>
+
+<tr>
+<td NOWRAP>sample/sample.bmp</td>
+<td>The sample application's icon. Pila converts this to a 'tAIB' resource</td>
+</tr>
+
+<tr>
+<td NOWRAP>sample/sample.prc</td>
+<td>The sample executable as produced by Pila</td>
+</tr>
+
+<tr>
+<td NOWRAP>sample/sampleRcp.inc</td>
+<td>Include file containing the resource ID definitions. Used in sample.asm
+and sample.rcp.</td>
+</tr>
+
+<tr>
+<td NOWRAP>sample/*.bin</td>
+<td>Binary resource files as they are produced by PilRC from the definitions
+in sample.rcp.</td>
+</tr>
+
+<tr>
+<td NOWRAP>source/*.h</td>
+<td>Various include files to create the Pila executable. See
+files for further details.</td>
+</tr>
+
+<tr>
+<td NOWRAP>source/*.c</td>
+<td>The C source files of Pila. See files for further details.</td>
+</tr>
+
+<tr>
+<td NOWRAP>source/libiberty/*</td>
+<td>Source files I copied from GNU gcc and modified to fit with the rest
+of the Pila sources. This is the beginning of my effort to incorporate a
+C pre-processor into Pila to make the Pila SDK obsolete. Not all of the files
+in this directory are currently used by this version of Pila.</td>
+</tr>
+
+</table>
+
+<p> &nbsp;
+<p><a NAME="PilRC"></a><b>1.3 PilRC</b>
+<p>PalmOS user interface elements like menus, forms, and icons are instantiated
+by means of PalmOS 'resources'. Wes Cherry has written a resource compiler,
+PilRC, to make the task of creating resources easier. Aaron Ardiri picked
+up that development and you can get the latest version of PilRC from his
+site at <a href="http://www.ardiri.com/index.php?redir=palm&cat=pilrc">http://www.ardiri.com/index.php?redir=palm&amp;cat=pilrc</a>.  
+PilRC takes as input a textual description of an application's user interface
+elements and compiles them down to PalmOS binary resources. In turn, Pila
+can incorporate these binary resources into an application by means of the 
+<a href="#direct_res"><tt>res</tt></a> directive.
+<p>The included sample program, Sample.asm, illustrates how this is done.
+Another nice tool to deal with the resource definition files (*.rcp) is
+PilRCEdit which is available through SourceForge.net. It basically is a
+WYSIWYG editor (what you see is what you get) for *.rcp files, which cuts
+the form editing cycle from edit, assemble, download, launch, preview,
+repeat to the much quicker edit, save, assemble, download and use.
+<p><a NAME="Debugger"></a><b>1.4 Emulator &amp; Debugger</b>
+<p>After you create your program there's a good chance you'll be wanting
+to debug it. There are some emulators as well as debuggers for the PalmOS
+platform available. I personally downloaded my tools from
+<a href="http://www.palmsource.com/dev/tools">http://www.palmsource.com/dev/tools</a>.
+Sony - as another example - offers a modified version of the PalmOS Emulator
+for their Cli&eacute;s together with the necessary ROM images at
+<a href="http://www.cliedeveloper.com">http://www.cliedeveloper.com</a>.
+<p>The Debugger I got from Palm Source supports symbols and with Pila's command-line
+option -s you can include the procedure symbols in the generated PRC file
+which makes debugging a little easier.<br>
+&lt;FRANK>I hope I soon find the time to add the possiblity to generate a symbol map file
+that can be loaded into the debugger making ALL the symbols available and even allow
+for source-code debugging (something that isn't all THAT important in assembler
+programming but it really helps finding the bugs faster...&lt;>FRANK>
+<p><a NAME="MinimalApp"></a><b>1.5 Creating A Minimal Pilot Application
+With Pila</b>
+<p>The purpose of this walkthrough is to demonstrate the Pila-specific
+aspects of writing a Pilot program, not to illustrate Pilot programming
+in general. I've kept the example as simple as possible and have even eliminated
+features that almost every Pilot application will contain (e.g., a main
+form, an event handling loop, an icon). The Pila Package includes a more
+complete application, Sample.asm, that illustrates form creation, event
+handling, and the like.
+<p>Start things off by opening your text editor with the new file "Hello.asm".
+You guessed it, we're going to recreate the classic "Hello world" application
+for the Pilot. The actual code will be kept very simple (just enough to
+invoke a dialog) because it's everything <i>around</i> the code that's
+important for you to know in order to use Pila. Enter or cut/paste the
+following lines of code as you see them and when you're done you'll have
+a ready-to-assemble application.
+<pre>; Hello.asm -- a minimal Pilot application to be assembled by Pila</pre>
+This is just a comment line. I've heard that all good programs should have
+at least one comment.
+<pre>        appl    "Hello", 'hllo'</pre>
+The <a href="#direct_appl"><tt>appl</tt></a> directive sets the application's name and id. The name
+will show up under its icon and the type must be unique amongst all Pilot
+applications. Palm Inc. maintains a registry to ensure app ids are unique.
+At <a href="http://www.palmos.com">http://www.palmos.com</a> you can register
+your own unique IDs online.
+<pre>        include "PalmOS.inc"</pre>
+The *.inc include files needed with Pila are contained in this package.
+<p>These include files contain all the definitions for the structures and
+constants as well as the PalmOS APIs. Hello uses several of these symbols
+(e.g., FrmAlert, sysAppLaunchFlagNewStack). See <a href="#AppendixB">Appendix
+B</a> for further details on the include files. The
+<a href="#direct_include"><tt>include</tt></a> directive
+allows us to incorporate other files in our assembly.
+<pre>        include "startup.asm"</pre>
+A special startup sequence is needed to fully initialize your Pilot application
+after loading. This sequence is common to all applications so it is precreated
+for your convenience. <i>IMPORTANT:</i> the startup function must be the
+very first function in your program. Always include Startup.asm before
+any of your own <b>code OR data</b>. Also note the *.asm extension! By convention
+I use *.inc for files containing definitions only and not producing anything
+actually stored in the resulting PRC - contrary to *.asm files that MAY produce
+actual output.
+<pre>
+        kidrHelloAlert      equ     1000
+        kidrHelpString      equ     1001
+        kidrPREF            equ     1
+        kidrTVER            equ     1</pre>
+These equates define symbolic names for the various resources in the Hello
+apps. Symbolic names are easier to change later, if necessary.
+<pre>        code</pre>
+After a <a href="#direct_code"><tt>code</tt></a> directive all code and data
+bytes are placed in the code section of the Pilot executable. Similarly, the
+<a href="#direct_data"><tt>data</tt></a> directive
+(not used in our Hello app) causes subsequent code and data to be placed
+in the data section of the application. The <a href="#direct_res"><tt>res</tt></a>
+directive causes subsequent code and data to be placed in the specified resource.
+<pre>PilotMain proc (cmd.UInt16, cmdPBP.void*, launchFlags.UInt16).UInt16</pre>
+The startup code in Startup.asm calls the function PilotMain after it is
+done initializing the app. Three arguments are passed to PilotMain (cmd,
+cmdPBP, and launchFlags). Pila takes these arguments and generates suitable
+offsets from the base pointer (a6) for them. Note that the type of the
+argument must be specified after the period.
+<pre>
+        local   err.w                   ; neither of these locals are used in this example
+        local   evt.EventType
+</pre>
+This defines the local variables for PilotMain. Locals are also accessed
+via offsets from a6. The type of the local variable is specified after
+the period following the variable name.
+<pre>        beginproc</pre>
+This marks the beginning of the procedure. Pila will automatically insert
+a link a6,#nnnn instruction where nnnn is the total size of all locals.
+This saves the old base pointer and sets up a new one for this function.
+Buy a book on 68000 assembly language programming if this doesn't mean
+anything to you.
+<pre>
+        tst.w   cmd(a6)                 ;sysAppLaunchCmdNormalLaunch is 0
+        bne     Return                  ;not a normal launch, bag out</pre>
+As covered in USRobotics' documentation, PilotMain is called under many
+circumstances -- including at HotSync time! This test ensures "Hello world!"
+only pops up when we want it to (e.g., not during hotsync, not during 'find'
+operations).
+<pre>
+         call FrmAlert(#kidrHelloAlert)
+</pre>
+<a href="#direct_call"><tt>call</tt></a> is a Pila directive which emits
+the code to push the arguments on the stack, call the trap and then clean
+up the stack. It will emit code equivalent to:
+<pre>
+        move.w  #kidrHelloAlert,-(a7)   ;push alert id on stack
+        trap    #15                     ;PalmOS API call
+        dc.w    $A192                   ;invoke the alert dialog (sysTrapFrmAlert==$A192)
+        addq.l  #2,a7                   ;pop alert id off stack
+</pre>
+This is the assembly language equivalent to 'FrmAlert(kidrHelloAlert);'
+in 'C' and illustrates how to call PalmOS APIs. The size of the parameter
+(#kidrHelloAlert) and the trap number ($A192) are both taken from the definition
+of the FrmAlert API in the Form.inc in the Pila SDK where you can find
+the following line:
+<pre>FrmAlert        trapdef [sysTrapFrmAlert](alertId.UInt16).UInt16</pre>
+For which in turn the definition of sysTrapFrmAlert is found in CoreTraps.inc:
+<pre>sysTrapFrmAlert  equ  0xA192</pre>
+See <a href="#AppendixC">Appendix C</a> for more information on PalmOS API
+calling conventions and the <a href="#direct_trapdef">trapdef</a> directive for information
+on the syntax of this line. In the end, all the PalmOS APIs are called through
+the 'trap' mechanism, similar to the Macintosh mechanism for calling Toolbox
+routines.
+<pre>Return
+        endproc</pre>
+<a href="#direct_endproc"><tt>endproc</tt></a> emits the unlk and rts
+instructions for you. It is required and must follow a previous
+<a href="#direct_beginproc"><tt>beginproc</tt></a>.
+<p>This completes the PilotMain function. That's the entire program code
+for Hello.
+<p>Next we move on to the resource section that most applications will
+have. Typically PilRC would be used to create these resources but they
+can also be defined inline as demonstrated here:
+<pre>
+        res     'Talt', kidrHelloAlert  ;Alert resource
+        dc.w    informationAlert        ;alertType
+        dc.w    kidrHelpString          ;helpRscID
+        dc.w    1                       ;numButtons
+        dc.w    0                       ;defaultButton
+        dc.b    "Red Alert", 0          ;title text
+        dc.b    "Hello world!", 0       ;message text
+        dc.b    "Most excellent!", 0    ;button text
+</pre>
+The <a href="#direct_res"><tt>res</tt></a> directive is used here to define
+an Alert ('Talt') resource that is read by the FrmAlert API and used to build
+the dialog box you'll see. This is the complete data definition of the resource.
+<pre>
+        res     'tSTR', kidrHelpString
+        dc.b    "I am a Pilot programming stud!", 0
+</pre>
+You may have noticed that the Alert resource references a help resource.
+This shows up when the user clicks on the little info symbol in the upper-right
+corner of the dialog box. We use the <a href="#direct_res"><tt>res</tt></a> directive
+again to define the help string (not very helpful in this case).
+<pre>
+        res     'tver', kidrTVER
+        dc.b    "1.0", 0
+</pre>
+All applications should have a version resource. I'm not sure this is enforced
+anywhere but it's a good idea anyway.
+<pre>
+        res     'pref', kidrPREF
+        dc.w    sysAppLaunchFlagNewStack|sysAppLaunchFlagNewGlobals|sysAppLaunchFlagUIApp|sysAppLaunchFlagSubCall
+        dc.l    $1000                   ; stack size
+        dc.l    $1000                   ; heap size
+</pre>
+The 'pref' resource defines the application launch flags, stack size, and
+heap size.
+<p>Well, that's all there is to it. Save Hello.asm and assemble it with
+the command "pila20 Hello.asm". If you got it right, out pops Hello.prc.
+Use instapp.exe ("instapp Hello.prc") and HotSync to download Hello to
+your Pilot. Press the applications button on your Pilot and you'll see
+Hello there, without an icon. It is valid but not very interesting to have
+an icon-less program. Hello was done this way to keep this example short.
+Follow the proper example in Sample.asm to define icons for your own apps.
+<p>Select Hello from the applications dialog and, baring data entry errors,
+you'll see "Hello world!". Try the info/tip icon. Sooner or later your
+curiosity or boredom will lead you to press the "Most excellent!" button.
+As you can see from the code, when FrmAlert returns PilotMain simply exits.
+When you try this you'll find that the program doesn't disappear. Why not?
+Pilot applications are executed by the 'Shell' and the rule is that one
+of them must be running at all times. If it terminates and returns to the
+Shell, the Shell just launches it again! Leave Hello by pressing one of
+the other application buttons.
+<p>Note that this fine piece of software engineering is only ~400 bytes
+long. The Pilot Memory application only reports application sizes rounded
+up to the nearest 'K' so most users won't fully appreciate your studliness
+at producing such a micronic application. In the face of this ignorance
+I recommend the time proven software development practice known as "bragging".
+The important thing is that the memory savings are real.
+<br>
+<hr noshade="">
+<center>
+<h3>
+<a NAME="PilaSyntax"></a>Chapter 2: Pila Syntax</h3></center>
+<a NAME="CommandLine"></a><b>2.1 Pila Command-Line Syntax</b>
+<pre>Pila [options] sourcefile</pre>
+<i>Options</i> specify options that modify assembler actions. Precede each
+option with a '-'. Separate options with spaces.
+<br> 
+<table BORDER=0 >
+
+<tr>
+<td WIDTH="10%"><b>Option</b></td>
+<td WIDTH="50%"><b>Description</b></td>
+</tr>
+
+<tr>
+<td WIDTH="10%">l</td>
+<td WIDTH="50%">Generate a listing file. The listing file has same name
+as the source file suffixed with '.lis'.</td>
+</tr>
+
+<tr>
+<td WIDTH="10%">c</td>
+<td WIDTH="50%">Show full constant expansions for DC directives.</td>
+</tr>
+
+<tr>
+<td WIDTH="10%">d</td>
+<td WIDTH="50%">Generate a bunch of debug output. This option is of little
+use to most people.</td>
+</tr>
+
+<tr>
+<td>s</td>
+<td>Generate MacBug-compatible symbols the PalmDebugger can understand.</td>
+</tr>
+
+<tr>
+<td>r</td>
+<td>Do not generate 'code' and 'data' resources.</td>
+</tr>
+
+<tr>
+<td>t TYPE</td>
+<td>Set the output PRC database's type to the specified four characters</td>
+</tr>
+
+</table>
+
+<p>Pila assembles the sourcefile, integrates any resources, and outputs
+a Pilot resource database (PRC) file with the same name as the source file
+suffixed with '.prc'. The application's name as it appears on the Pilot
+is defined by the <a href="#direct_appl"><tt>appl</tt></a> directive or a
+'tAIN' resource, not its DOS/Windows file name.
+<p>Listing files show the expansion of any directives that generate code
+or additional symbols
+(<a href="#direct_beginproc"><tt>beginproc</tt></a>,
+ <a href="#direct_endproc"><tt>endproc</tt></a>,
+ <a href="#direct_call"><tt>call</tt></a> etc.). Listing output
+can be enabled and disabled from within a program by using the
+<a href="#direct_list"><tt>list</tt></a> directive. An easy way to suppress the
+listing of all the standard include files! Just put <tt>list 0</tt> before your
+<tt>include "PalmOS.inc"</tt>. And add a <tt>list 1</tt> behind it to get a
+listing of your code.
+<p>Pila generated code symbols are produced inline in the code section
+directly following each procedure. The symbol format follows that of MacsBug
+and is compatible with Copilot's debugger. As of this version, only code
+symbols for procedure entries are supported, no data symbols.
+<p>With the '-r' option Pila becomes more of a PRC builder than an assembler.
+It collects all the resources specified with <a href="#direct_res"><tt>res</tt></a>
+directives and bundles them into a valid Resource Database (PRC) that can be downloaded
+to the Pilot. In this mode Pila has two main uses. First, an experimenter
+could deconstruct an existing PRC file with prc2bin, modify any of its
+resources, and reconstruct the PRC file (unaltered aside from the intentional
+changes) with Pila. Second, Pila can be used as a backend for any language
+or tool that can generate the appropriate 'code' and 'data' (or other)
+resources. Used this way, the language/tool would generate binary files
+containing code and/or preinitialized data and a small assembly stub, basically
+just a list of <a href="#direct_res"><tt>res</tt></a> directives, would be used to
+include those resources along with any other resources, say, forms and menus created
+with PilRC, that were desired for the final PRC.
+<p>With the '-t' option one can override the default database type of 'appl'.
+Generally this isn't something you'd want to do.
+<p><a NAME="StatementFormat"></a><b>2.2 Statement Format</b>
+<p>Pila follows the Motorola syntax for the 68000 microprocessor. The general
+format of a statement is:
+<pre>[Name] [Operation] [Operands] [;Comment]</pre>
+<i><a name="StatementFormatName"></a><u>Name</u></i> defines a label that can be
+accessed from elsewhere in the program.
+If the statement has a data directive (e.g., <a href="#direct_dc"><tt>dc</tt></a>,
+<a href="#direct_ds"><tt>ds</tt></a>), this field is a variable name. If the statement
+has an instruction, this field is a code label. Names must start with a letter or
+one of the characters '_', '?', '@' <b>(no '$'!)</b> and may contain letters,
+numbers and the characters '_', '?', '$', '@'.
+<p>
+Furthermore there are special temporary labels that can only be used in the code
+section. They start with a '.' (dot) followed by one digit (1..9).
+These temporary labels are referenced by i.e. '.1b' or '.2f' which are a
+backward-reference to the temporary label .1 and a forward reference
+to the temporary label .2 respectively.
+
+In a code fragment like this:
+<pre>
+	doSomething proc (parm1.b,parm2.UInt16).UInt32
+		local	localvar.w
+		beginproc
+		...
+	chkloop	moveq	#1,d0
+		cmpi	#10,d1
+		bcc	.1f
+		addq	#2,d0
+	.1	addq	#1,d0
+		...
+		cmpi	#5,d0
+		bcc	.1f
+		...
+		bra	.1b
+	.1	endproc
+</pre>
+the first reference .1f and the reference .1b are therefore actually referencing
+the same - first - temporary label .1 whereas the second reference .1f is referencing
+the second temporary label .1. For clarity it would be wise to replace the second
+temporary label .1 with the temporary label .2 and avoid the confusion of which .1 is
+actually meant *wink* or even better use 'return' instead of the second .1 since
+all code labels defined within <a href="#direct_beginproc"><tt>beginproc</tt></a> and
+<a href="#direct_endproc"><tt>endproc</tt></a> are <b>LOCAL</b> to the procedure they
+are defined in! That means you can have a label 'return' in every procedure. To reference
+a label in another procedure or from outside any procedure you have to prefix the
+label with the procedure's name it is defined in. In our above example chkloop could
+thus be referenced as 'doSomething.chkloop' from anywhere outside the procedure
+doSomething (and from inside as well if you wish to do so *grin*).
+<p><i>[Note: if you have a global code label 'return' outside any procedure and another one
+inside some procedure you won't be able to reference the global 'return' from inside
+that procedure since there is no prefix for global labels and just using 'return' will
+always reference the procedure's local label 'return'.]</i>
+<p>
+Names are case-sensitive and significant to fifty-two
+characters. They must either start in column 1 of the line or - if indented with some
+whitespace characters - must be followed by a ':' (colon) which in the other case is optional.
+
+<p><i><u>Operation</u></i> states the action of the statement. This field is either
+a 68000 instruction or a directive and is case-insensitive. The Motorola
+syntax has instructions suffixed by the size of data they operate on (e.g.,
+<tt>clr.b</tt>,
+<tt>add.w</tt>, <tt>move.l</tt>). When the data size is unspecified, Pila
+assumes it's a word (same as a '.w' suffix). Pila does <i>not</i> support
+the MIT syntax which allows the period to be omitted from the data length
+suffix. A program that converts from MIT to Motorola format can be found
+at <a href="ftp://nyquist.ee.ualberta.ca/pub/motorola/portable/mit2mot.tar.gz">
+ftp://nyquist.ee.ualberta.ca/pub/motorola/portable/mit2mot.tar.gz</a>.
+
+<p><i><u>Operands</u></i> list the item(s) to be operated on. Operands are separated
+by commas.
+<p><i><u>Comment</u></i> provides a comment for the user. This field is for documentation
+purposes only and is ignored by the assembler. Comments may begin with an asterisk if it is the
+first non-whitespace character in the line or a ';' (semicolon) anywhere in the line and outside
+of single- or double-quotes.
+
+<p><a NAME="Symbols"></a><b>2.3 Symbols</b>
+<p>Symbols can be defined as labels (see <a href="#StatementFormatName">
+Statement Format - Name</a> above) or through the <a href="#direct_set"><tt>set</tt></a>
+or <a href="#direct_equ"><tt>equ</tt></a> directives making it possible to give gibberish
+values like 0x03E3188F an meaningful name.
+<p>Symbols are also used to name types, structures, unions or enumerations and their respective
+members. The directives <a href="#direct_struct"><tt>struct</tt></a>, 
+<a href="#direct_union"><tt>union</tt></a>, <a href="#direct_enum"><tt>enum</tt></a> and
+<a href="#direct_typedef"><tt>typedef</tt></a> are responsible for achieving that.
+<p>In general a symbol name is case-sensitive, must start with a letter or one of the characters
+'_', '@', '?' and can contain letters and digits and '_', '@', '?', '$'. It's significant
+length is 52 meaning if you have two symbols that are identical in the first 52 characters,
+Pila will not distinguish between them and you will get some sort of re-definition error.
+<p>All global symbols are thrown into the same pot. That means you can't have a symbol 'Event'
+representing a structure and at the same time defining a procedure of the same name. This is not
+the case for parameter-names, local variables or labels defined inside a procedure since all those
+are local to the procedure and have to be unique only within the procedure's context. The global
+representation of those symbols is prefixed with the procedure's name and thus becomes unique again
+in the global context.
+
+<p><a NAME="Constants"></a><b>2.4 Constants</b>
+<p>Constants can be single-quoted strings of up to 4 characters that are padded with \0 on
+the <b>left</b> to full 32 bits or numeric constants.
+<p>To indicate the radix of a numeric constant Pila allows the following prefixes:
+<br> 
+<table BORDER=0 WIDTH="50%" >
+<caption><tbody>
+<br></tbody></caption>
+<tr>
+<td><b>Specifier</b></td>  <td><b>Radix</b></td>            <td><b>Sample</b></td>
+</tr>
+<tr>
+<td>%</td>     <td>Binary</td>      <td>%10011010</td>
+</tr>
+<tr>
+<td>0</td>     <td>Octal</td>      <td>0773</td>
+</tr>
+<tr>
+<td>none</td>  <td>Decimal</td>     <td>123</td>
+</tr>
+<tr>
+<td>$</td>     <td>Hexadecimal</td> <td>$1Fa</td>
+</tr>
+<tr>
+<td>0x</td>    <td>Hexadecimal</td> <td>0xAB8</td>
+</tr>
+<tr>
+<td>0X</td>    <td>Hexadecimal</td> <td>0Xcf1</td>
+</tr>
+</table>
+<p>Floating-point constants are not supported.
+<br>For improved legibility dots ('.') can be inserted as separators into the numeric
+constant anywhere after the first digit. They will just be ignored.
+<br>Hexadecimal digits can be upper or lower case.
+<br>A suffix of u, l or ul (either upper or lower case) can be specified but has not
+effect and is simply ignored. This was done for compatability reasons with the generated
+include files which contain constants like this from the original C include files.
+<br>All constants are assumed to be 32 bits. No automatic sign extension is done, therefore
+$FF00 is different from $FFFFFF00 but -$100 and $FFFFFF00 are the same.
+
+<p><a NAME="Operators"></a><b>2.5 Operators</b>
+<p>Sorted by order of precedence from highest to lowest:
+<br> 
+<table BORDER=0 >
+<caption><tbody>
+<br></tbody></caption>
+
+<tr>
+<td WIDTH="10%"><b>Operator</b></td>
+<td WIDTH="25%"><b>Syntax</b></td>
+<td WIDTH="50%"><b>Description</b></td>
+</tr>
+
+<tr><td colspan=3>--------------------------------------------------------------------------------------------</td></tr>
+
+<tr>
+<td>.</td>
+<td WIDTH="25%">structure.member</td>
+<td>member reference (also for union and a procedure's local labels)</td>
+</tr>
+
+<tr><td colspan=3>--------------------------------------------------------------------------------------------</td></tr>
+
+<tr>
+<td>-</td>
+<td WIDTH="25%">- expression</td>
+<td>Unary minus</td>
+</tr>
+
+<tr>
+<td>~</td>
+<td WIDTH="25%">~ expression</td>
+<td>One's complement</td>
+</tr>
+
+<tr><td colspan=3>--------------------------------------------------------------------------------------------</td></tr>
+
+<tr>
+<td>(, )</td>
+<td WIDTH="25%">( expression )</td>
+<td>Parenthesized expression</td>
+</tr>
+
+<tr><td colspan=3>--------------------------------------------------------------------------------------------</td></tr>
+
+<tr>
+<td WIDTH="10%">&lt;&lt;</td>
+<td WIDTH="25%">expression &lt;&lt; count</td>
+<td WIDTH="50%">Shift left</td>
+</tr>
+
+<tr>
+<td WIDTH="10%">>></td>
+<td WIDTH="25%">expression >> count</td>
+<td WIDTH="50%">Shift right</td>
+</tr>
+
+<tr><td colspan=3>--------------------------------------------------------------------------------------------</td></tr>
+
+<tr>
+<td WIDTH="10%">|</td>
+<td WIDTH="25%">expression | expression</td>
+<td WIDTH="50%">Logical OR</td>
+</tr>
+
+<tr>
+<td WIDTH="10%">&amp;</td>
+<td WIDTH="25%">expression &amp; expression</td>
+<td WIDTH="50%">Logical AND</td>
+</tr>
+
+<tr><td colspan=3>--------------------------------------------------------------------------------------------</td></tr>
+
+<tr>
+<td WIDTH="10%">*</td>
+<td WIDTH="25%">expression * expression</td>
+<td WIDTH="50%">Multiply</td>
+</tr>
+
+<tr>
+<td WIDTH="10%">/</td>
+<td WIDTH="25%">expression / expression</td>
+<td WIDTH="50%">Divide</td>
+</tr>
+
+<tr>
+<td WIDTH="10%">\</td>
+<td WIDTH="25%">expression \ expression</td>
+<td WIDTH="50%">Modulo</td>
+</tr>
+
+<tr><td colspan=3>--------------------------------------------------------------------------------------------</td></tr>
+
+<tr>
+<td WIDTH="10%">+</td>
+<td WIDTH="25%">expression + expression</td>
+<td WIDTH="50%">Add</td>
+</tr>
+
+<tr>
+<td WIDTH="10%">-</td>
+<td WIDTH="25%">expression - expression</td>
+<td WIDTH="50%">Subtract</td>
+</tr>
+
+</table>
+
+<p><a NAME="Functions"></a><b>2.6 Built-in Functions</b>
+<p>The only currently implemented built-in function is
+<pre>
+      sizeof(<i>Symbol</i>)
+</pre>
+which returns the size of the specified symbol. In the case of the symbol being the
+name of a type, the type's size is returned (i.e. sizeof(char)==1). In the case of the
+symbol being something else than a type, the size of the symbol's type is returned.
+If the symbol doesn't have a type associated with it, 0 is returned.
+
+<hr noshade="">
+
+<center><h3><a NAME="Directives"></a>Chapter 3: Directives</h3></center>
+<p>This chapter describes all the different directives Pila understands. When specifying
+a directive in your source code make sure it does not start in column 1 of the line because
+in that case Pila will interpret it as a label and not the directive you want it to be!
+<p>
+<!========================================================================================>
+<a NAME="direct_align"></a><b>3.1 align</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>align <i>size</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_align"><tt>align</tt></a> directive forces emitted code and data to be aligned
+on the next multiple of <tt>size</tt>. The <a href="#direct_beginproc"><tt>beginproc</tt></a>
+directive automatically emits an <tt>align 2</tt> directive because all code must
+be aligned on two-byte boundaries.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_appl"></a><b>3.2 appl</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>appl "<i>applicationname</i>",'<i>apid</i>'</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_appl"><tt>appl</tt></a> directive defines the application's
+name and unique four character identifier. The application name must be 31
+characters or less and shows up under its icon in the Pilot application launcher
+if it is not overridden by a <tt>'tAIN'</tt> resource. The application's identifier
+is supposed to be registered with USRobotics to guarantee that no other
+application uses the same identifier. If this identifier collides with
+that of another application on the same Pilot then all manner of nasty
+problems will ensue (e.g., hotsyncing of those applications and their data
+records won't work properly).
+<p><br>If the <a href="#direct_appl"><tt>appl</tt></a> directive is omitted Pila
+will default the application name to its file name (e.g., "Sample.asm" becomes
+"Sample") and the four character id will be 'temp'.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_beginproc"></a><b>3.3 beginproc</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>beginproc</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <tt>beginproc</tt> directive marks the beginning of a procedure. It
+instructs Pila to emit the proper link a6,#nnn instruction where nnn is
+the negative sum of the sizes of all locals. It is not possible to specify
+a label in front of the directive <a href="#direct_beginproc"><tt>beginproc</tt></a>.
+<br><i>[FIXME: make beginproc take an optional register list to be saved on the stack and
+thus have the necessary MOVEM.L instructions generated automatically by beginproc and
+endproc (yet another way to eliminate a potential source of programming bugs).]</i>
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_call"></a><b>3.4 call</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i>] call <i>procname</i>([<i>argument</i>][,<i>argument</i>]...)</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_call"><tt>call</tt></a> directive emits code to push the arguments on the stack,
+invoke the procedure/proxy/trap and then clean up the stack.
+<a href="#direct_call"><tt>call</tt></a> can be used to
+invoke procedures just as well as traps, lib-traps and proxies. Since Pila now keeps track
+of symbol types the necessary way of calling the different entry points is automatically
+selected based on the entry points type (proc, trap or proxy).
+<br>When passing pointers to locals or globals, prefix the argument with the &amp; character.
+Constants must be prefixed with the # character.
+<br><b>Argument sizes do not have to be specified anymore since Pila will use the sizes
+from the <a href="#direct_proc"><tt>proc</tt></a>, <a href="#direct_proxy"><tt>proxy</tt></a>,
+<a href="#direct_procdef"><tt>procdef</tt></a> or <a href="#direct_trapdef"><tt>trapdef</tt></a>
+directives defining the call-target.</b> The only exception from that rule are parameters
+of calls to a trap or procedure with a variable parameter list. In those cases - since Pila
+does not know about the types of those extra parameters - you will have to specify the type
+of each parameter by enclosing it with parenthesis and the right parenthesis must be followed by
+'.' (dot) and the type name.That will tell Pila how to push those parameters on the stack
+and how much to clean up afterwards again.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_code"><b>3.5 code</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>code</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_code"><tt>code</tt></a> directive places the assembler in code generation mode.
+Pila is always considered to be in one of three modes: code generation,
+data generation, or resource generation. The mode dictates where any assembler
+output will reside. For example, a <a href="#direct_dc"><tt>dc.b</tt></a> directive while in code
+generation mode places the constant data in the code section, not the data
+section. The directives <a href="#direct_code"><tt>code</tt></a>, <a href="#direct_data">
+<tt>data</tt></a>, and <a href="#direct_res"><tt>res</tt></a>
+set the compiler in the respective generation mode. The default mode is
+code generation.
+<p><br>You change generation scope as many times as you want, interspersing
+code and data.
+<p>In general, read-only variables (e.g., constant strings) should be defined
+within the <a href="#direct_code"><tt>code</tt></a> scope to save runtime memory. Code is accessed
+in-place in Storage memory while data is duplicated in Dynamic memory at
+application load time. Note, if you embed data within your code, use the
+<a href="#direct_align"><tt>align</tt></a> directive before any subsequent
+code to ensure it is placed on a two-byte boundary. If you don't and the alignment is not
+on a two-byte boundary, Pila will do the alignment implicitly and issue a warning.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_data"><b>3.6 data</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>data</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_data"><tt>data</tt></a> directive places the assembler in data
+generation mode. Pila is always considered to be in one of three modes: code generation,
+data generation, or resource generation. The mode dictates where any assembler
+output will reside. For example, a <a href="#direct_dc"><tt>dc.b</tt></a> directive while in code
+generation mode places the constant data in the code section, not the data
+section. The directives <a href="#direct_code"><tt>code</tt></a>, <a href="#direct_data">
+<tt>data</tt></a>, and <a href="#direct_res"><tt>res</tt></a>
+set the compiler in the respective generation mode. The default mode is
+code generation.
+<p><br>As this implies, code <i>can</i> be assembled into the data section.
+Doing so is ill-advised because code in the data section is duplicated
+in Dynamic memory at load time, whereas code in the code section is executed
+in-place in Storage memory. But if you want to do some sort of wicked self-modifying
+hack you can.
+<p>Be sure to include a <a href="#direct_data"><tt>data</tt></a> directive before defining
+any writable global variables. Failing to do so will result in a memory error when your
+code attempts to write to the variable (stored in read-only Storage memory!).
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_dc"><b>3.7 dc</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i>] dc.b <i>initializer</i> [, <i>initializer</i>]...</tt></dd>
+<br><tt>[<i>label</i>] dc.w <i>initializer</i> [, <i>initializer</i>]...</tt>
+<br><tt>[<i>label</i>] dc.l <i>initializer</i> [, <i>initializer</i>]...</tt>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_dc"><tt>dc</tt></a> (data constant) directive defines a list of
+constant data bytes, words, or longs. Initializers may be a numerical value, an
+expression, or a string. Strings are surrounded by double quotes and are not
+automatically null-terminated. The <a href="#direct_dc"><tt>dc.w</tt></a> and
+<a href="#direct_dc"><tt>dc.l</tt></a> directives force their data to begin on a
+word boundary.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_dcb"><b>3.8 dcb</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i>] dcb.b <i>blocksize</i>, <i>initializer</i></tt></dd>
+<br><tt>[<i>label</i>] dcb.w <i>blocksize</i>, <i>initializer</i></tt>
+<br><tt>[<i>label</i>] dcb.l <i>blocksize</i>, <i>initializer</i></tt>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_dcb"><tt>dcb</tt></a> (data constant block) directive defines a
+constant block of bytes, words, or longs. The size (in bytes) of the constant block is
+the <tt>blocksize</tt> times the size of the block type (byte, word, long).
+The initializer is repeated <tt>blocksize</tt> times. Initializers may
+be a numerical value or an expression. The <a href="#direct_dcb"><tt>dcb.w</tt></a> and
+<a href="#direct_dcb"><tt>dcb.l</tt></a> directives force their data to begin on a word boundary.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_ds"><b>3.9 ds</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i> ds.b <i>blocksize</i></tt></dd>
+<br><tt>[<i>label</i> ds.w <i>blocksize</i></tt>
+<br><tt>[<i>label</i> ds.l <i>blocksize</i></tt>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_ds"><tt>ds</tt></a> (data storage) directive defines a theoretically
+uninitialized (initialized to zero at run time) block of bytes, words, or longs.
+The size (in bytes) of the memory block is the <tt>blocksize</tt> times the size of the block
+type (byte, word, long). The advantage of <a href="#direct_ds"><tt>ds</tt></a> over
+<a href="#direct_dcb"><tt>dcb</tt></a> should be that the space for the data is only allocated
+when the application loads. Unfortunately Palm OS does not support uninitialized global data.
+Therefore <a href="#direct_ds"><tt>ds.w 4</tt></a> is equivalent to <a href="#direct_dcb">
+<tt>dcb.w 4,0</tt></a>.
+<br>The <a href="#direct_ds"><tt>ds.w</tt></a> and
+<a href="#direct_ds"><tt>ds.l</tt></a> directives issue a warning and force their data to begin
+on a word boundary if the current output location is not already on a word boundary. 
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_else"><b>3.10 else</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>else</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_else"><tt>else</tt></a> directive can be put in between an
+<a href="#direct_if"><tt>if</tt></a>, <a href="#direct_ifndef"><tt>ifndef</tt></a>,
+<a href="#direct_ifdef"><tt>ifdef</tt></a> and the corresponding
+<a href="#direct_endif"><tt>endif</tt></a> directive to define code that is to be processed
+only if the condition of the <a href="#direct_if"><tt>if</tt></a> directive was <b>not</b> met.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_end"><b>3.11 end</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>end</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_end"><tt>end</tt></a> directive forces Pila to stop assembly
+immediately. The <a href="#direct_end"><tt>end</tt></a> directive is optional.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_endenum"><b>3.12 endenum</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>endenum</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_endenum"><tt>endenum</tt></a> directive marks the end of an
+enumeration definition that was started with the directive
+<a href="#direct_enum"><tt>enum</tt></a>.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_endif"><b>3.13 endif</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>endif</tt></dd>
+<dt>Description:</dt>
+<dd>
+An <a href="#direct_endif"><tt>endif</tt></a> directive is required for each
+<a href="#direct_if"><tt>if</tt></a>, <a href="#direct_ifndef"><tt>ifndef</tt></a>,
+<a href="#direct_ifdef"><tt>ifdef</tt></a> directive to specify the end of the
+conditionally processed source code.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_endproc"><b>3.14 endproc</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i>] endproc</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_endproc"><tt>endproc</tt></a> directive marks the end of a procedure.
+It instructs Pila to emit an unlk and rts instruction. If the '-s' (symbols) switch
+is specified on the command line then <a href="#direct_endproc"><tt>endproc</tt></a>
+also emits a PalmDebugger-compatible symbol at the end of the procedure following the
+MacsBug standard.
+<br><i>[FIXME: see <a href="#direct_beginproc">beginproc</a>]</i>
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_endproxy"><b>3.15 endproxy</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i>] endproxy</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_endproxy"><tt>endproxy</tt></a> directive is the equivalent for the
+<a href="#direct_proxy"><tt>proxy</tt></a>
+directive what the <a href="#direct_endproc"><tt>endproc</tt></a> is for the
+<a href="#direct_beginproc"><tt>beginproc</tt></a> directive. For a more detailed
+description of what <a href="#direct_endproxy"><tt>endproxy</tt></a> does see the
+documentation of the <a href="#direct_proxy"><tt>proxy</tt></a> directive.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_endstruct"><b>3.16 endstruct</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>endstruct</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_endstruct"><tt>endstruct</tt></a> directive marks the end of a
+structure definition that was started with an according
+<a href="#direct_struct"><tt>struct</tt></a> directive.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_endunion"><b>3.17 endunion</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>endunion</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_endunion"><tt>endunion</tt></a> directive marks the end of a union
+definition that was started with an <a href="#direct_union"><tt>union</tt></a> directive.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_enum"><b>3.18 enum</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>enumname</i> enum</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; [<i>membername</i> [= <i>initializer</i>]]...</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;endenum</tt>
+<br><br>or alternatively it can be specified this way:<br>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;enum <i>enumname</i></tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;[<i>membername</i> [= <i>initializer</i>]]...</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;endenum</tt>
+</dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_enum"><tt>enum</tt></a> directive starts the definition of an
+enumeration. The name under which this enumeration can later be referenced as a type
+identifier must be specified as a label in front of <a href="#direct_enum"><tt>enum</tt></a>.
+It is not possible to define an enumeration without a name.
+<p>The line with the <a href="#direct_enum"><tt>enum</tt></a> directive is followed by
+0 or more lines with member definitions of the form <tt>name [= initializer]</tt>
+where name is a valid symbol name (see <a href="#Symbols">2.3 Symbols</a>) and the
+optional initializer is a numeric expression.
+<p>Finally the directive <a href="#direct_endenum"><tt>endenum</tt></a> is finishing the
+definition of the enumeration. See also <a href="#AppendixB4">Appendix B</a> for a discussion of
+the enumeration support in Pila.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_equ"><b>3.19 equ</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>name</i> equ <i>expression</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_equ"><tt>equ</tt></a> directive evaluates <tt>expression</tt> and
+assigns its value to <tt>name</tt>. After definition, all uses of <tt>name</tt> are
+replaced by its value. Unlike <a href="#direct_set"><tt>set</tt></a>,
+<a href="#direct_equ"><tt>equ</tt></a> does not allow equates to be redefined.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_error"><b>3.20 error</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>error <i>message</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_error"><tt>error</tt></a> directive allows the programmer to issue
+compile time error messages similiar to the #pragma error directive of C compilers.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_extern"><b>3.21 extern</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>name</i> equ <i>expression</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_extern"><tt>extern</tt></a> directive allows to define external symbols.
+But since Pila does not yet support linking the value of the symbol remains undefined and any
+references to it will produce an error message. The extern directive was included for future
+use and the possiblity to absorb some declarations made in the C header files of the Palm OS
+SDK without having to drop the declarations alltogether.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_global"><b>3.22 global</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>globalname</i> global <i>type</i></tt>
+<br><br>or alternatively it can be specified this way:<br>
+<br><tt>&nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; global <i>globalname</i>.<i>type</i></tt>
+</dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_global"><tt>global</tt></a> directive declares global variables. The
+<a href="#direct_global"><tt>global</tt></a> directive must occur after a
+<a href="#direct_data"><tt>data</tt></a> directive.
+For a description of valid global names see <a href="#Symbols">2.3 Symbols</a> and the
+possible specifications for the type are described with the <a href="#direct_typedef">
+<tt>typedef</tt></a> directive.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_if"><b>3.23 if</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>if <i>expression</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <tt>if</tt> directive allows for source code to be processed conditionally. The code
+following the directive up to the corresponding <a href="#direct_else"><tt>else</tt></a>
+or <a href="#direct_endif"><tt>endif</tt></a> directive (if no corresponding
+<a href="#direct_else"><tt>else</tt></a> exists) is included in the processing if the
+<tt>expression</tt> evaluates to anything other than 0.
+<br>If the expression evaluates to 0 the source code up to the corresponding
+<a href="#direct_else"><tt>else</tt></a> or <a href="#direct_endif"><tt>endif</tt></a>
+(if no corresponding <a href="#direct_else"><tt>else</tt></a> exists) is skipped and not
+processed in any way.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_ifndef"><b>3.24 ifndef</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>ifndef <i>symbolname</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_ifndef"><tt>ifndef</tt></a> directive works just like the
+<a href="#direct_if"><tt>if</tt></a> directive except that instead of an expression a
+symbol name must be specified and the following source code is processed only if the
+specified symbol name is <b>not</b> defined.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_ifdef"><b>3.25 ifdef</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>ifdef <i>symbolname</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_ifdef"><tt>ifdef</tt></a> directive works just like the
+<a href="#direct_ifndef"><tt>ifndef</tt></a> directive except that instead of processing
+the following source code if the symbol name is not defined it processes it if the symbol
+name <b>is</b> defined.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_incbin"><b>3.26 incbin</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i>] incbin "<i>includefile</i>"</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_incbin"><tt>incbin</tt></a> directive inserts the binary file
+<tt>includefile</tt> into the prc file. It is equivalent to doing a "dc.b" for each byte in
+the file, except that it's a lot faster.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_include"><b>3.27 include</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>include "<i>includefile</i>"</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_include"><tt>include</tt></a> directive inserts source code from
+<tt>includefile</tt> into the current source file during assembly. If the path to
+<tt>includefile</tt> is not fully specified Pila looks for the include file in the following
+places, in order:
+<ol>
+<li>the same directory as the source file</li>
+<li>the current directory</li>
+<li>each of the directories specified by the environment
+variable PILAINC (e.g., for Windows: set PILAINC=c:\common\include;c:\Pila\inc and for
+Linux: export PILAINC=~/common/include:~/Pila/inc)</li>
+<li>the directory pila20 is located in</li>
+<li>the 'inc' directory that is a sibling of the directory pila20 is located
+in. For example, if pila20 is in /ASDK/bin its sibling inc directory
+would be /ASDK/inc.</li>
+</ol>
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_list"><b>3.28 list</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>list <i>expression</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_list"><tt>list</tt></a> directive disables and enables output to
+the listing file. It only takes effect if the '-l' switch was specified on the Pila
+command line. If <tt>expression</tt> evaluates to 0 listing output is disabled,
+a result of 1 enables listing output.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_local"><b>3.29 local</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>localname</i> local <i>type</i></tt>
+<br><br>or alternatively it can be specified this way:<br>
+<br><tt>&nbsp;&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; local <i>localname</i>.<i>type</i></tt>
+</dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_local"><tt>local</tt></a> directive declares procedure local variables.
+The local directive must occur after a <a href="#direct_proc"><tt>proc</tt></a> directive and
+before a <a href="#direct_beginproc"><tt>beginproc</tt></a> directive.
+For a description of valid local names see <a href="#Symbols">2.3 Symbols</a> and
+the possible specifications for the type are described with the
+<a href="#direct_typedef"><tt>typedef</tt></a> directive.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_proc"><b>3.30 proc</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>procname</i> proc ([<i>argumentname</i>.<i>type</i>][,<i>argumentname</i>.<i>type</i>]...[,...])[.<i>returntype</i>]</tt>
+<br><br>or alternatively it can be specfied this way:<br>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proc <i>procname</i> ([<i>argumentname</i>.<i>type</i>][,<i>argumentname</i>.<i>type</i>]...[,...])[.<i>returntype</i>]</tt>
+</dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_proc"><tt>proc</tt></a> directive declares a procedure. Procedures may have zero
+or more arguments. For each argument a name and a type must be specified. See <a href="#Symbols">
+2.3 Symbols</a> for valid argument names and the
+<a href="#direct_typedef"><tt>typedef</tt></a> directive for valid type specifications
+(argument type and return type).
+The argument list can be ended with the special argument specification of '...' (three dots).
+In this case Pila will allow additional arguments in the <a href="#direct_call"><tt>call</tt></a>
+directive without issueing an error message.
+<br>The <a href="#direct_proc"><tt>proc</tt></a> directive will define the symbol procname
+with the proper address and all the symbols for the arguments specified with it. Those
+symbols are local to the procedure and not accessible from outside the code wrapped by the
+following <a href="#direct_beginproc"><tt>beginproc</tt></a> and <a href="#direct_endproc">
+<tt>endproc</tt></a> directives.
+<br>The returntype in the <a href="#direct_proc"><tt>proc</tt></a> directive is optional
+and actually not used at all by Pila. But since the return value will either be returned
+in a0 (for addresses) or d0 and possibly d1 (for other values) it is generally a good idea
+to specify the return type for documentation purposes.
+<br><i>[FIXME: make sure Pila produces an error message if one tries to access the symbols
+by prefixing them with the procedure name (will be fixed in the next version that will have
+a much reworked symbol handling and a generalized concept of symbol context - see symbol.c
+for more details on this).]</i>
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_procdef"><b>3.31 procdef</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>procname</i> procdef ([<i>argumentname</i>.<i>type</i>][,<i>argumentname</i>.<i>type</i>]...[,...])[.<i>returntype</i>]</tt>
+<br><br>or alternatively it can be specfied this way:<br>
+<br><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;procdef <i>procname</i> ([<i>argumentname</i>.<i>type</i>][,<i>argumentname</i>.<i>type</i>]...[,...])[.<i>returntype</i>]</tt>
+</dd>
+
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_procdef"><tt>procdef</tt></a> directive's syntax is identical with the
+<a href="#direct_proc"><tt>proc</tt></a> directive's. The only difference between the two is,
+that <a href="#direct_procdef"><tt>procdef</tt></a> can not be followed by any
+<a href="#direct_local"><tt>local</tt></a> or <a href="#direct_beginproc"><tt>beginproc</tt></a>
+directives and that it is only used to define a procedure's name and arguments and not it's implementation.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_proxy"><b>3.32 proxy</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>proxyname</i> proxy ([<i>argumentname</i>.<i>type</i>][,<i>argumentname</i>.<i>type</i>]...)[.<i>returntype</i>]</tt>
+<br><br>or alternatively it can be specfied this way:<br>
+<br><tt>&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy <i>proxyname</i> ([<i>argumentname</i>.<i>type</i>][,<i>argumentname</i>.<i>type</i>]...)[.<i>returntype</i>]</tt>
+</dd>
+
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_proxy"><tt>proxy</tt></a> directive can be used to create wrappers
+for procedures or trap calls with minimal overhead. It's syntax follows the one of the
+<a href="#direct_proc"><tt>proc</tt></a> directive except that a proxy can not be defined
+with a variable parameter list ('...' as the last argument specification).
+<br>When Pila processes a proxy directive like this:
+<pre>
+        WrapWinDrawChar proxy (theChar.WChar,x.Coord,y.Coord).void
+</pre>
+it issues the following code:
+<pre>
+        WrapWinDrawChar
+                move.l (a7)+,6(a7)
+</pre>
+Thus effectively removing the return address from the stack and storing it in the space
+the <a href="#direct_call"><tt>call</tt></a> directive reserved for it automatically.
+Now the proxy code can add additional parameters or modify the ones already on the stack
+before making a call to the intended routine. Here is the WrapWinDrawChar proxy code from
+my Sony HiRes-Wrapper utility code as an example for the use of the
+<a href="#direct_proxy"><tt>proxy</tt></a> directive:
+<pre>
+        WrapWinDrawChar proxy (theChar.WChar,x.Coord,y.Coord).void
+	        tst.b   hiresMode(a5)                ; are we running on a SonyClie with HiRes capabilities
+                beq.s   lowres                       ; nope - just call the normal WinDrawChar
+                move.w  sonyHRLibRefNum(a5),-(a7)    ; yes - push the library reference number on the stack
+                trap    #sysDispatchTrapNum          ; and call the HRWinDrawChar routine by Sony
+                dc.w    HRTrapWinDrawChar            ; with the parameters (sonyHRLibRefNum,theChar,x,y)
+                addq.l  #2,a7                        ; clean up the additional parameter
+                bra.s   return                       ; and get the hell out of here
+        lowres  trap    #sysDispatchTrapNum          ; for the low res case use the PalmOS routine WinDrawChar
+                dc.w    sysTrapWinDrawChar
+        return  endproxy                             ; restore the return address and return to caller
+</pre>
+The directive <a href="#direct_endproxy"><tt>endproxy</tt></a> emits code to restore the return
+address from the location it was saved before and a rts instruction. Therefore the actually assembled
+code for this proxy looks like this:
+<pre>
+        WrapWinDrawChar
+                move.l  (a7)+,6(a7)                  ; save return address in reserved space
+	        tst.b   hiresMode(a5)                ; are we running on a SonyClie with HiRes capabilities
+                beq.s   lowres                       ; nope - just call the normal WinDrawChar
+                move.w  sonyHRLibRefNum(a5),-(a7)    ; yes - push the library reference number on the stack
+                trap    #sysDispatchTrapNum          ; and call the HRWinDrawChar routine by Sony
+                dc.w    HRTrapWinDrawChar            ; with the parameters (sonyHRLibRefNum,theChar,x,y)
+                addq.l  #2,a7                        ; clean up the additional parameter
+                bra.s   return                       ; and get the hell out of here
+        lowres  trap    #sysDispatchTrapNum          ; for the low res case use the PalmOS routine WinDrawChar
+                dc.w    sysTrapWinDrawChar
+        return  move.l  6(a7),-(a7)                  ; restore the return address
+                rts                                  ; and return to caller
+</pre>
+As you may have recognized, this proxy can only be called after the two global variables
+hiresMode and sonyHRLibRefNum are properly set *wink* This job is done in a normal procedure
+WrapHiresInit of my Sony HiRes-Wrapper utility code that is called at the very beginning
+of any of my programs using this wrapper.
+<br><i>[FIXME: create a possiblity for proxies to use local variables and add parameters
+'on the other side' of the parameter list (shouldn't be all THAT difficult).]</i>
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_reg"><b>3.33 reg</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>name</i> reg <i>registerlist</i></tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_reg"><tt>reg</tt></a> directive defines a named list of registers
+as accepted by the <tt>movem</tt> instruction. The Motorola convention for register
+lists is used. Registers are separated by '/' and register ranges are denoted
+by '-'. For example, d0/d1/d4-d7/a0-a3/a6 is a register list that includes
+the registers d0, d1, d4, d5, d6, d7, a0, a1, a2, a3, and a6. It is invalid
+to declare a range across data and address registers (e.g., d5-a3).
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_res"><b>3.34 res</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>res '<i>type</i>', <i>id</i></tt>
+<br><tt>res '<i>type</i>', <i>id</i>, "<i>datafile</i>"</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_res"><tt>res</tt></a> directive places the assembler in resource generation
+mode. Pila is always considered to be in one of three modes: code generation,
+data generation, or resource generation.. The mode dictates where any assembler
+output will reside. For example, a <a href="#direct_dc"><tt>dc.b</tt></a> directive
+while in code generation mode places the constant data in the code section, not the data
+section. The directives <a href="#direct_code"><tt>code</tt></a>, <a href="#direct_data">
+<tt>data</tt></a>, and <a href="#direct_res"><tt>res</tt></a>
+set the compiler in the respective generation mode. The default mode is
+code generation.
+<p><br>The second form of the <a href="#direct_res"><tt>res</tt></a> directive allows the resource
+data to be read from a binary data file rather than defined inline. Use
+the second form to include resources generated by Wes Cherry's Pilot Resource
+Compiler (PilRC).
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_set"><b>3.35 set</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>name</i> set <i>expression</i></tt>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_set"><tt>set</tt></a> directive evaluates <tt>expression</tt> and
+assigns its value to <tt>name</tt>. After definition, all uses of <tt>name</tt> are
+replaced by its value. Unlike <a href="#direct_equ"><tt>equ</tt></a>,
+<a href="#direct_set"><tt>set</tt></a> equates can be redefined any number of times.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_struct"><b>3.36 struct</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>structname</i> struct</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; [<i>membername</i>.<i>type</i>]...</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;endstruct</tt>
+<br><br>alternatively it can also be specified this way:
+<br><br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;struct <i>structname</i></tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;[<i>membername</i>.<i>type</i>]...</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;endstruct</tt>
+</dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_struct"><tt>struct</tt></a> directive declares a structure named
+<tt>structname</tt>.
+The members of the structure are specified next. See <a href="#Symbols">2.3 Symbols</a>
+for valid member names and directive <a href="#direct_typedef"><tt>typedef</tt></a> for
+valid type specifications.
+<br>Currently it is not possible to nest <a href="#direct_struct"><tt>struct</tt></a>
+and <a href="#direct_union"><tt>union</tt></a> directives.
+To define nested structures and/or unions define the lower level ones first and then use
+their names as type specifications for the members of the higher level structure/union.
+<br>In a structure member definition the type specification can also be followed by ':'
+(colon) and an integer number. This defines a bit field where the type specifies the
+range of bytes it is part of and the integer number behind the colon defines how many
+bits the field is wide. See <a href="#AppendixB3">Appendix B.3 Bitfields</a> for a more
+detailed discussion of bit fields.
+<br><i>[FIXME: make it possible to nest</i> <tt>union</tt> <i>and</i> <tt>struct</tt> <i>directives.]</i>
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_systrap"><b>3.37 systrap <font color="red">(depricated)</font></b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i>] systrap <i>systrapname</i>([<i>argument</i>][,<i>argument</i>]...)</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_systrap"><tt>systrap</tt></a> directive is depricated. It is a
+functional subset of the <a href="#direct_call"><tt>call</tt></a> directive.
+Therefore use <a href="#direct_call"><tt>call</tt></a> instead of
+<a href="#direct_systrap"><tt>systrap</tt></a>!
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_syslibtrap"><b>3.38 syslibtrap <font color="red">(depricated)</font></b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt>[<i>label</i>] syslibtrap <i>libtrap</i>([<i>argument</i>][,<i>argument</i>]...)</tt></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_syslibtrap"><tt>syslibtrap</tt></a> directive is depricated.
+It is a functional subset of the <a href="#direct_call"><tt>call</tt></a> directive.
+Therefore use <a href="#direct_call"><tt>call</tt></a> instead of
+<a href="#direct_syslibtrap"><tt>syslibtrap</tt></a>!
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_trapdef"><b>3.39 trapdef</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>trapname</i> trapdef '['<i>trapnumber</i>[:<i>selector</i>[.w]]']'([<i>argname</i>.<i>type</i>][,<i>argname</i>.<i>type</i>]...[,...])</tt>
+<br><br>or alternatively it can be specified this way:<br>
+<br><pre>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;trapdef <i>trapname</i> '['<i>trapnumber</i>[:<i>selector</i>[.w]]']'([<i>argname</i>.<i>type</i>][,<i>argname</i>.<i>type</i>]...[,...])</pre></dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_trapdef"><tt>trapdef</tt></a> directive is equivalent to the
+<a href="#direct_procdef"><tt>procdef</tt></a> directive. But while a
+<a href="#direct_procdef"><tt>procdef</tt></a>
+defines the name and parameters of an otherwise still undefined procedure (no entry address
+is given with the <a href="#direct_procdef"><tt>procdef</tt></a> directive) the 
+<a href="#direct_trapdef"><tt>trapdef</tt></a> directive specifies all
+necessary information (trap number and possibly an 8 or 16 bit selector) to actually be
+able to call the defined trap routine. The <a href="#direct_trapdef"><tt>trapdef</tt></a>
+directive must be preceeded by a label (the name under which the
+<a href="#direct_call"><tt>call</tt></a> directive
+will be able to emit the necessary code to execute the trap) and followed by a left bracket
+and an expression evaluating to the trap number of the trap to be defined. This expression
+can optionally be followed by a ':' (colon) and an expression evaluating to the selector.
+If the selector is a 16 bit selector the expression must be followed by '.w' (dot-w) or
+'.W' (dot-W). After that a right bracket is required followed by the list of arguments
+just like in the <a href="#direct_procdef"><tt>procdef</tt></a> directive.
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_typedef"><b>3.40 typedef</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>typename</i> typedef <i>type</i></tt>
+<br><br>or alternatively it can be specified this way:<br>
+<br><tt>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; typedef <i>typename</i>.<i>type</i></tt>
+</dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_typedef"><tt>typedef</tt></a> directive can be used to define an
+alias name for any type or modified type. The typename needs to be a valid symbol name
+(see <a href="#Symbols">2.3 Symbols</a>) and the type specification can be any pre-defined
+or user-defined type with or without modifiers or an entry point specification.
+<br>Pre-defined types in Pila are:
+<table border=0 cellpadding=0 cellspacing=0>
+<thead>
+<th>Type Name&nbsp;&nbsp;</th><th>Length in Bytes</th>
+</thead>
+<tr><td align=left>void</td>   <td>0</td></tr>
+<tr><td align=left>int </td>   <td>2</td></tr>
+<tr><td align=left>float</td>  <td>4</td></tr>
+<tr><td align=left>double</td> <td>8</td></tr>
+<tr><td align=left>char</td>   <td>1</td></tr>
+<tr><td align=left>b</td>      <td>1</td></tr>
+<tr><td align=left>w</td>      <td>2</td></tr>
+<tr><td align=left>l</td>      <td>4</td></tr>
+<tr><td align=left>d</td>      <td>8</td></tr>
+</table>
+<br>User-defined types are any structure-, union-, enum- or typedef-definitions.
+<br>Possible type modifiers are:<br>
+<dl>
+<dt><b>&nbsp;&nbsp;pointer to a type</b><dt>
+<dd>
+  defined by appending '*' to the type name i.e. int*
+</dd>
+<dt><b>&nbsp;&nbsp;array of a type</b></dt>
+<dd>
+  defined by appending '[]' to the type name i.e. int[].
+  <br>Inside the brackets you can specifiy the size of the array and for multi-dimensional
+  arrays you can specify multiple sizes either within one pair of brackets separated by
+  ',' (comma) or multiple bracket-pairs with size specifications. I.e. int[3][2][4] is
+  the same as int[3,2][4] or int[3][2,4] or int[3,2,4].
+  <br>The size specifications can be numeric expressions.
+</dd>
+</dl>
+<br>An entry point specification is a list of arguments enclosed by parenthesis and
+followed by '.' (dot) and the return type. I.e.
+<pre>
+typedef FormEventHandlerType.(eventP.EventType*).Boolean
+</pre>
+Note that it is not possible to use modifiers in this case since those would just apply
+to the return type of the entry point specification. To define a pointer to an entry point
+use <a href="#direct_typedef"><tt>typedef</tt></a> to create an alias (like the
+FormEventHandlerType above) and then use
+<pre>
+typedef FormEventHandlerPtrType.FormEventHandlerType*
+</pre>
+to define a pointer to the entry point. Use the same technique for arrays.
+<br><b>That is also the reason why you can't use an entry point specification as the type
+definition anywhere else than in typedef!</b>
+</dd>
+</dl>
+<!========================================================================================>
+<a NAME="direct_union"><b>3.41 union</b>
+<dl>
+<dt>Syntax:</dt>
+<dd><tt><i>unionname</i> union</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;[<i>membername</i>.<i>type</i>]...</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; endunion</tt>
+<br><br>or alternatively it can also be specified this way:
+<br><br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; union <i>unionname</i></tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; [<i>membername</i>.<i>type</i>]...</tt>
+<br><tt> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; endunion</tt>
+</dd>
+<dt>Description:</dt>
+<dd>
+The <a href="#direct_union"><tt>union</tt></a> directive declares a union named
+<tt>unionname</tt>. The members of the union are specified next. See
+<a href="#Symbols">2.3 Symbols</a>
+for valid member names and directive <a href="#direct_typedef"><tt>typedef</tt></a> for
+valid type specifications.
+<br>Currently it is not possible to nest <a href="#direct_struct"><tt>struct</tt></a>
+and <a href="#direct_union"><tt>union</tt></a> directives.
+To define nested structures and/or unions define the lower level ones first and then use
+their names as type specifications for the members of the higher level structure/union.
+<br><i>[FIXME: make it possible to nest</i> <tt>union</tt> <i>and</i> <tt>struct</tt> <i>directives.]</i>
+</dd>
+</dl>
+<!========================================================================================>
+<hr noshade="">
+<p><a NAME="AppendixA"></a><b>Appendix A: The Making Of Pila</b>
+<p>The first time I saw a Pilot I was struck by all kinds of software ideas
+-- programs I could create to make this device more useful and entertaining
+for me and for others. If only I had the tools to do so. First, I needed
+a Pilot. Pay out the cash, no problem. Then I needed software development
+documentation. After a while, USRobotics released SDK documentation on
+<a href="ftp://ftp.netcom.com/pub/pa/palm">their FTP site</a> . Great!
+Now all I needed was a set of PC-based cross-development tools for creating
+Pilot applications. USRobotics' SDK? Mac only. Hmm...
+<p>I tired of hoping for a PC-based SDK and started building my own tools.
+My first set of tools leveraged the IDE and 68000 C Compiler of Microsoft's
+<a href="http://www.microsoft.com/visualc/cp/cppr_avl/pricing.htm">Visual
+C++ Cross-Development Edition for Macintosh</a> . This is swell but has
+two drawbacks. First, Visual C++ Mac edition can be quite expensive (I
+don't want to create all the Pilot apps myself!) and second, it doesn't
+come with a 68000 assembler. Perhaps I could do something about this.
+<p>To my surprise (before I realized that <i>anything</i> can be found
+on the Net if one looks long enough) there are several public domain assemblers
+for the 68000. A few are available in source form and one of them, an assembler
+written by Paul McKee at North Carolina State University in 1986, looked
+like a good match for the job. I decided to build my Pilot assembler on
+this base. You can find Paul McKee's original assembler and a partially
+working 68000 emulator (<a href="ftp://nyquist.ee.ualberta.ca/pub/motorola/m68k/68asmsim.zip">
+68asmsim.zip</a> ) where I did on a backup site for Motorola's BBS (<a href="ftp://nyquist.ee.ualberta.ca/pub/motorola">
+ftp://nyquist.ee.ualberta.ca/pub/motorola</a> ). There's lots of other
+great stuff there.
+<p>With many thanks to Paul McKee I started hacking his assembler to meet
+my needs. I wanted the assembler to produce fully formed Pilot executables
+without the need for an external linker or resource compiler. The lack
+of a linker may make creating extremely large applications more difficult
+(good!) but it saves time now and I can write one later if needed. A resource
+compiler would certainly be nice but I'd rather spend my time creating
+high level GUI tools for resource creation and editing. In the meantime,
+a tweak or two to the assembler would let it do the job of integrating
+resources into the final executable.
+<p>So I modified the assembler to build a list of resources as it assembled.
+With the help from some new directives, code becomes one resource, data
+becomes another, and additional Pilot-specific resources can be defined
+in-line or included. I borrowed some PRC-building code from <a href="index.html#exe2prc">exe2prc</a>
+, a tool I created for converting Win32 EXEs into Pilot PRCs, and bolted
+it to the end of the assembler to convert the final collection of resources
+into something the Pilot could recognize.
+<p>Wes Cherry had some great ideas for some new directives and syntax for
+Pila to make many common operations (procedure parameter definition, procedure
+calling, structure definition, API calling, local and global variable definition)
+as easy as they are in high level languages like 'C'. Wes took a copy of
+the Pila sources, implemented his (now indispensable) extensions, fixed
+a couple Pila bugs, and even updated the documentation!
+<p>&lt;Mikael Klasson signing on> Unfortunately, I have to write this myself
+so you'll have to judge if my ideas are great or not... ;) Anyway, I too
+have made some extensions to Pila: local labels, the
+<a href="#direct_incbin"><tt>incbin</tt></a> directive and
+compression of the datasection. &lt;Back to Darrin>
+<p>Other tools have arrived on the scene to help complete the set of Pilot
+development tools. Wes Cherry's PilRC is a resource compiler that saves
+hours of time and makes things possible that wouldn't be practical without
+it. Greg Hewgill's Copilot Pilot Emulator includes a Pila-compatible symbolic
+debugger. Bill Hunt's PilDis is a disassembler that can provide a peek
+into the innards of existing Pilot applications.
+<p>&lt;Frank Sch&auml;ckermann signing on>
+<br>That was about five years ago.
+In the meanwhile I bought a Sony Clie and to my surprise
+learned that it contains a Motorola CPU (actually I bought the thingy for
+my wife *wink*). Now... a good 12 years ago I built my own computer (soldering
+and everything) which was based on a M68020. On that computer I programmed
+pretty much everything myself and - to whom's surprise - fell in love with
+the assembler programming of that CPU. Later on my job required me to change
+to Intel based computers and the times of 68K assembler where over. Until
+I bought the Sony Clie. Once I found out there is a 68K
+CPU ticking in it finding a possibility to program it in assembler became
+a MUST. Some searching on the Internet turned up Pila. A Pilot assembler
+- exactly what I needed. But the thing was hopelessly out of date (Pilot.inc
+was at Palm OS 2.0 level and the Clie has Palm OS 4.1 on it) and my first
+project turned up quite a few bugs in the symbol handling. Hence I downloaded
+the source and set to work. The results are documented in this updated user manual.
+<br>&lt;Frank Sch&auml;ckermann signing off>
+<hr noshade="">
+<p><a NAME="AppendixB"></a><b>Appendix B: Pila SDK</b>
+<p>The Pila SDK was generated by a fairly complex REXX script that I (Frank Sch&auml;ckermann)
+wrote. It is based on the - for the process slightly modified - C header files of SDK 5
+from Palm Source Inc. and the SDK 5 Version 1.2 from Sony for i.e. the high resolution
+(320x320) the Sony Clie is capable of. I generated the *.inc files in a way that preserved
+all the original comments in the SDK and hopefully made it just as easy to use as the original
+SDK.
+
+<p>Having done all that - and knowing perfectly well, that Pila without this SDK is pretty
+useless - I realized, that I can't distribute my version of the SDK with Pila since the
+copyright agreement I 'signed' when I downloaded the Palm OS SDK from PalmSource Inc. doesn't
+allow me to. I finally figured out a way how to get around this problem (see below).
+Nevertheless I am working on a Pila version that can actually read the original C-header files
+directly. But that project is probably a few month away from completion since I basically have
+to incorporate a C preprocessor into Pila to achieve that...
+<p>Until then I guess everybody will have to go through a certain process to generate the
+Pila SDK from the original header files using the program and templates supplied with the
+Pila package. Here is what I did and what you have to do to get the necessary Pila SDK installed
+on your machine.
+<p><b>What I did to create the *.sdk files distributed with this package</b>
+<p>After I had written the REXX script, modified the C header files in a few places to take SOME
+complexity out of the things the REXX script had to do and used the script to transform the
+C header files into .inc files for Pila (each .h file has a corresponding .inc file with the exception
+of PalmCompatibility.h which I deemed unnecessary since the Pila SDK hasn't been in existence
+before) I realized that this process would be just too horrible for anybody to go through just
+to get the Pila SDK - apart from the fact that you'd have to install REXX for the script to run and
+gcc for the C pre-processor the script uses (well... you'll need gcc anyway if you want to compile
+Pila yourself *grin*).
+<p>It took me an alarming long time to come up with an idea to solve the dilemma and this is what
+I came up with:
+<p>Since all the identifiers in the corresponding .inc and .h files are the same I wrote a program
+that enumerates all the different words (consequetive alphanumeric and '_' (underscore) characters)
+found in the .h file and replaces these words in the .inc file with @&lt;number>@ where number is
+the word's number in the .h file and every single '@' (at) in the .inc file is replaced with @@.
+The result is stored in a .sdk file which is distributed with this package.
+<p>To illustrate what's happening look at the following example:
+<br>let's assume a line in the .h file reads
+<br><center><tt>#define sysDispatchTrapNum 15</tt></center>
+<br>and the words would have the numbers 20 (for define), 21 (for sysDispatchTrapNum) and 22 (for  15)
+and the corresponding line in the .inc file would be
+<br><center><tt>sysDispatchTrapNum equ 15</tt></center>
+<br>then the resulting line in the .sdk file would look like this
+<br><center><tt>@21@ equ @22@</tt></center>
+<br>thus the resulting .sdk files don't contain any Palm OS specific information anymore and can be
+freely distributed with the Pila package. Well... at least something *wink*
+<p>All of the above is accomplished by the encode-pila-sdk script found in the pila-sdk subdirectory
+of the Pila-2.0 directory. Even though the encode-pila-sdk is distributed with this package it is not
+really of any use to YOU except if you want to create your own .sdk files after you modified the .inc
+files. The real transformation work is done by the program transform-sdk. This program receives as a
+parameter the name of a file containing a list of files it is supposed to work on. Depending on the
+suffix of those files it will transform sdk files into inc files (if the suffix is sdk) or vice versa
+(if the suffix is inc). Thus the same program can be used to encode and to decode the Pila SDK.
+<p><b>What you have to do to recreate the .inc files</b>
+<p>Now on YOUR computer - if you use the very same .h files as I used on mine for the encoding - you
+can easily reverse the process by replacing any @&lt;number>@ with the corresponding word from the
+corresponding .h file and replacing every @@ with @ and this way decode the .sdk files back into .inc
+files. Voila! Cool, isn't it?
+<p>The only problem is, that you will have to make sure you use EXACTLY the
+same .h files as I did because otherwise the number of some words in your .h file might be different
+for the decoding than it was for the encoding and the resulting .inc file will be garbage.
+<p>To give you some kind of security I did two things: first I wrote a bash script (decode-pila-sdk) that
+will look for the palmos-sdk-5.0-1.tar.gz file and the Sony SDK files cliesdk30e.zip and cliesdk50e.zip
+(which you will have to download - see below) and check their sizes to make sure they are the same as
+the ones I used. The cliesdk*.zip files are optional since not everyone will need the Sony SDK available
+to Pila. Once that is verified the files are unpacked, shuffled around a little, the .sdk files are
+unpacked from the distributed file pila-sdk-5.zip and the program transform-sdk is called with a list of
+all .sdk files just unpacked and will transform every .sdk file that has a corresponding .h file into
+an .inc file. The resulting mess is cleaned up and the .inc files kept in the inc directory in the
+pila-sdk subdirectory of your Pila installation. Hurra! (anybody still with me?)
+<p>The second thing I did to make sure things don't get messed up is to calculate the CRC32 checksum
+of the .inc file as it exists on my computer (leaving out the \r bytes to avoid problems with the
+difference between Windows- and Unix-based text files) and appending the resulting 16 hex characters
+together with a prefix of *@*' at the end of the .sdk file. The transform-sdk program on your computer
+will then create the CRC32 checksum of the .inc file it creates on your computer and compares it with
+the value found in the .sdk file. If the two match we can safely assume that you've got the same .inc
+file on your computer now as I had on mine before the whole mess started.
+<p>Okay... now you know how the process goes principally. And here are the step by step instructions
+to actually get it done:
+<ol>
+<li>Make sure you've got the infozip package installed on your computer (exists for Windows and Unix).
+This will give you the unzip program necessary to execute the following steps.
+<li>Unpack the Pila-2.0.zip package with infozip's unzip program to a directory of your liking (i.e.
+~/PalmDev): <tt>unzip Pila-2.0.zip -d ~/PalmDev</tt>
+<br>That will produce a subdirectory Pila-2.0 in that directory (i.e. ~/PalmDev/Pila-2.0) with quite a
+few files and further subdirectories.
+<li>Now you have to download a few files from the Internet into the pila-sdk subdirectory of your Pila-2.0
+directory just created (~/PalmDev/Pila-2.0/pila-sdk):
+<ul>
+<li>palmos-5.0-1.tar.gz which is the PRC-TOOLS sdk package from the http://www.palmsource.com/... site.
+This file should have the size of 430914 bytes once it is on your harddrive.
+<li>cliesdk30e.zip - the Sony SDK 3 - from the archives of http://www.cliedeveloper.com/... .
+This file should have the size of 947027 bytes and needs to be downloaded only if you want to write programs
+using the Snd-, Msa- or Cap-library for Sony Clies prior to Palm OS 5. Sure enough the Sony SDK for Palm OS
+5 doesn't allow to write programs that run under Palm OS 5 and earlier versions because Sony changed the values
+of some of the constants. I tweaked the C header files before generating the .inc files to allow for writing
+programs with the Pila SDK that can - with some runtime-checks - run under Palm OS 5 and earlier versions
+by renaming the changed constants through appending _OS5 to their names. Also the files SonyMsaLib.h,
+SonyCapLib.h and SonySndLib.h are not included in the Sony SDK 5 anymore but are needed for programs running
+on Palm OS versions prior to version 5. That is the reason you need to download the cliesdk30e.zip - just to
+get those three files as well.
+<li>cliesdk50e.zip - the Sony SDK 5 Version 1.2 with a size of 1052358 bytes. This contains all the other
+Sony Clie related stuff like Sony HiRes library, Jogdial etc. (I guess by now you realize that I own a Sony
+Clie, don't you? *grin*). This file is also only needed if you plan to write programs using the Sony Clie
+related things. If you don't download this file (or the cliesdk30e.zip) you'll just get some messages later
+on that certain .inc files would not be created due to missing corresponding .h files.
+</ul>
+<li>Once you have downloaded the above files change into the directory you downloaded those files into
+(i.e. ~/PalmDev/Pila-2.0/pila-sdk) and run the script <tt>decode-pila-sdk</tt> that is already present in that
+directory: <tt>./decode-pila-sdk</tt>
+<li>You'll get some messages about unpacking, transforming and cleaning up things. And hopefully no other
+messages than a few "No header file found to transform Sony/xxx (skipped)" if you didn't download the 
+Sony SDK files.
+<li>The result of running the decode-pila-sdk script is a subdirectory inc in Pila-2.0/pila-sdk containing the
+new and shiny Pila SDK. Move that directory down one level into Pila-2.0 and set your PILAINC environment
+variable to include at least the directories Pila-2.0/lib and Pila-2.0/inc for Pila to know where to find
+the include files and the library files distributed with this Pila package.
+<li>You are all set and can start reading the rest of this manual to get a feel for how to write programs
+for/with Pila. Have fun!
+</ol>
+<p><a name="AppendixB1"></a><b>B.1 Structures</b>
+<p>A 'C' structure typedef like this:
+<pre>
+        typedef struct _FormLabelType {
+            Word id;
+            PointType pos;
+            FormObjAttrType attr;
+            FontID fontID;
+            Char *text;
+            struct _Nested {
+              more1 Word;
+              more2 char;
+            } nested;
+        } FormLabelType, *FormLabelPtr;
+</pre>
+Becomes these struct and typedef definitions:
+<pre>
+        struct _Nested
+            more1.Word
+            more2.char
+        endstruct
+
+        struct _FormLabelType
+            id.Word
+            pos.PointType
+            attr.FormObjAttrType
+            fontID.FontID
+            text.Char*
+            nested._Nested
+        endstruct
+
+        typedef FormLabelType._FormLabelType
+        typedef FormLabelPtr._FormLabelType*
+</pre>
+Members nested inside of structures containing structures can be reached
+by using the . (dot) operator. For pointers to structures the type of the pointer
+is declared by the structure name. For example, after loading a pointer
+to a FormLabelType structure into A0 one can use <tt>FormLabelType.pos.x(A0)</tt>
+to perform the equivalent to the 'C' operation <tt>formLabel->pos.x</tt>.
+For a local declared as <tt>local formLabel.FormLabelType</tt> one would
+use <tt>formLabel.pos.x(a6)</tt>. A similar global would be <tt>formLabel.pos.x(a5)</tt>.
+There will be a warning issued if you reference a
+global variable without using the address register a5 or a local variable
+or parameter without using the address register a6.
+<p><a name="AppendixB2"></a><b>B.2 Unions</b>
+<p>Unions are now fully supported by Pila. Just use the the period to reference
+any of the union members the same way you do with structures as shown
+above.
+<p>A 'C' union typedef like this:
+<pre>
+        typedef struct HelperNotifyEventTypeTag
+        {
+                UInt16 version;
+                HelperNotifyActionCodeType actionCode;
+                union
+                {
+                        struct HelperNotifyEnumerateListTypeTag*   enumerateP;
+                        struct HelperNotifyValidateTypeTag*        validateP;
+                        struct HelperNotifyExecuteTypeTag*         executeP;
+                } data;
+        } HelperNotifyEventType;
+</pre>
+Becomes these struct, union and typedef definitions:
+<pre>
+        struct  HelperNotifyExecuteTypeTag
+        endstruct
+        
+        struct  HelperNotifyValidateTypeTag
+        endstruct
+        
+        struct  HelperNotifyEnumerateListTypeTag
+        endstruct
+        
+        union   _union178
+                enumerateP.HelperNotifyEnumerateListTypeTag*
+                validateP.HelperNotifyValidateTypeTag*
+                executeP.HelperNotifyExecuteTypeTag*
+        endunion
+        
+        struct  HelperNotifyEventTypeTag
+                version.UInt16
+                actionCode.HelperNotifyActionCodeType
+                data._union178
+        endstruct
+        
+        typedef HelperNotifyEventType.HelperNotifyEventTypeTag
+</pre>
+<p>Note the name _union178 for the union that was used 'inline' in the C code. Since Pila does not
+understand nested struct or union definitions (yet) I had to break them apart into multiple
+definitions of which a few didn't have any name. Thus my script generated unique names of the
+format _union&lt;counter>.
+
+<p><a name="AppendixB3"></a><b>B.3 Bitfields</b>
+<p>A bitfield is an interesting construct combining two properties: a count
+of bits and a bit offset within a number. An operation often performed
+with bitfields, especially single-bit fields, is a masking operation. I
+wanted to make both properties of bitfields available to assembly language
+programmers and to make masking operations convenient as well. So a set
+of bitfields like this:
+<pre>
+        typedef struct FieldAttrTag
+        {
+                UInt16 usable:1;        // Set if part of ui 
+                UInt16 visible:1;       // Set if drawn, used internally
+                UInt16 editable:1;      // Set if editable
+                UInt16 singleLine:1;    // Set if only a single line is displayed
+                UInt16 hasFocus:1;      // Set if the field has the focus
+                UInt16 dynamicSize:1;   // Set if height expands as text is entered
+                UInt16 insPtVisible:1;  // Set if the ins pt is scolled into view
+                UInt16 dirty:1;         // Set if user modified
+                UInt16 underlined:2;    // text underlined mode
+                UInt16 justification:2; // text alignment
+                UInt16 autoShift:1;     // Set if auto case shift
+                UInt16 hasScrollBar:1;  // Set if the field has a scroll bar
+                UInt16 numeric:1;       // Set if numeric, digits and secimal separator only
+                UInt16 reserved:1;      // Reserved for future use
+        } FieldAttrType;
+
+</pre>
+Becomes these struct and typedef definitions in Pila:
+<pre>
+        struct  FieldAttrTag
+                usable.UInt16:1         ; Set if part of ui
+                visible.UInt16:1        ; Set if drawn, used internally
+                editable.UInt16:1       ; Set if editable
+                singleLine.UInt16:1     ; Set if only a single line is displayed
+                hasFocus.UInt16:1       ; Set if the field has the focus
+                dynamicSize.UInt16:1    ; Set if height expands as text is entered
+                insPtVisible.UInt16:1   ; Set if the ins pt is scolled into view
+                dirty.UInt16:1          ; Set if user modified
+                underlined.UInt16:2     ; text underlined mode
+                justification.UInt16:2  ; text alignment
+                autoShift.UInt16:1      ; Set if auto case shift
+                hasScrollBar.UInt16:1   ; Set if the field has a scroll bar
+                numeric.UInt16:1        ; Set if numeric, digits and secimal separator only
+                reserved.UInt16:1       ; Reserved for future use
+        endstruct
+        typedef FieldAttrType.FieldAttrTag
+</pre>
+For each bit-field-member there are automatically three sub-members defined.
+I.e. the symbol <i>FieldAttrTag.justification</i> has the value 0 since it references
+the first UInt16 value in the structure which has an offset of 0.
+<br>The symbol <i>FieldAttrTag.justification.shift</i> has the value 4 since
+it takes a right-shift of 4 to move the bit field to the lowest bit of
+the UInt16 it is part of.
+<br>The symbol <i>FieldAttrTag.justification.mask</i> has the value of 0x0003
+since that would mask out the shifted bit field.
+<br>The symbol <i>FieldAttrTag.justification.count</i> has the value of 2 since
+the bit field spans 2 bits.
+<br>
+<br>In your program you can use 
+<pre>
+ANDI.W #!(FieldAttrTag.justification.mask&lt;&lt;FieldAttrTag.justification.shift),FieldAttrTag.justification(a0)
+</pre>
+to clear the justification bits in a FieldAttrTag structure pointed to by a0.
+Now once Pila gets macro capabilities (yes, I am working on it) there will be a
+way to do this with a little less typing *wink*.
+
+<p><a name="AppendixB4"></a><b>B.4 Enumerations</b>
+<p>Along with the structure and union support came the support for enumerations and it is pretty
+straight forward. This is the enumeration of Bitmap compression algorithms as it is found in Bitmap.h:
+<pre>
+        typedef enum 
+        {
+                BitmapCompressionTypeScanLine   = 0,
+                BitmapCompressionTypeRLE,
+                BitmapCompressionTypePackBits,
+	
+                BitmapCompressionTypeEnd,       // must follow last compression algorithm
+
+                BitmapCompressionTypeBest       = 0x64,			
+                BitmapCompressionTypeNone       = 0xFF
+	} BitmapCompressionType;
+</pre>
+The Pila digestible definition of this enumeration is the following:
+<pre>
+; Compression Types for BitmapVersionTwo
+	enum	_enum12
+		BitmapCompressionTypeScanLine	=	0
+		BitmapCompressionTypeRLE
+		BitmapCompressionTypePackBits
+		BitmapCompressionTypeEnd	; must follow last compression algorithm
+		BitmapCompressionTypeBest	=	$64
+		BitmapCompressionTypeNone	=	$FF
+	endenum
+	typedef	BitmapCompressionType._enum12
+</pre>
+<p>Here again a temporary unique identifier was generated by the automatic translation and
+the real name of the enumeration is established with a <a href="#direct_typedef">
+<tt>typedef</tt></a> directive defining the proper name for it. The elements of the enumeration
+become globally available constants and don't have to be prefixed with the enumeration name. Just
+like it is in 'C' as well.
+<p><a name="AppendixB5"></a><b>B.5 APIs</b>
+<p>APIs are called by executing a trap #15 followed by a two-byte API index.
+The PalmOS trap handler uses the API index to look up the API's address
+and calls it. API indexes are named the same as the APIs preceeded by 'sysTrap'.
+So, 'EvtGetEvent' becomes 'sysTrapEvtGetEvent'. The <a href="#direct_systrap">
+<tt>systrap</tt></a> directive makes it easy to call APIs. When using
+<a href="#direct_systrap"><tt>systrap</tt></a> specify the trap
+name without the sysTrap prefix, i.e., <tt>systrap EvtGetEvent(&amp;evt(a6),
+#evtWaitForever)</tt>
+<p>&lt;Frank><br>
+Please note that <tt>call EvtGetEvent(&amp;evt(a6),#evtWaitForever)</tt> will accomplish
+exactly the same without requiring the knowledge, that EvtGetEvent is actually an API to 
+be called via TRAP and not a procedure. This is why the use of the directives
+<a href="#direct_systrap"><tt>systrap</tt></a> and 
+<a href="#direct_syslibtrap"><tt>syslibtrap</tt></a> is depricated and should be replace
+with the directive <a href="#direct_call"><tt>call</tt></a>.
+<br>&lt;/Frank>
+<br>
+<hr noshade="">
+<p><a NAME="AppendixC"></a><b>Appendix C: PalmOS API Calling Conventions</b>
+<p>All I know about the PalmOS API calling conventions I've discovered
+by examining MetroWerks-compiled PRC files, the Pilot ROM, and quite a
+bit of trial and error. I think this information is correct but stay alert
+as you write your code.
+<p>The PalmOS uses the 'C' (aka cdecl) calling convention. The caller pushes
+the arguments on the stack last to first (right to left) and is responsible
+for popping them off after the API returns. APIs preserve all registers
+except D0, D1, D2, A0, and A1. APIs that return pointers return them in
+the A0 register. All other APIs return their values in the D0 register.
+<p>All arguments are word-aligned on the stack as per Motorola conventions.
+That is, a byte pushed on to the stack actually consumes a word with the
+byte value in the upper half of the word.
+<p>Several registers have special purposes. As mentioned above, D0 and
+A0 are used to return values from APIs. A7 is the stack pointer. A6 is
+used as a local frame base pointer. A5 points to a location within the
+application's data section. All global variable accesses are performed
+relative to A5.
+<br>
+<hr noshade="">
+<p><a NAME="AppendixD"></a><b>Appendix D: 68000 Instruction Set Quick Reference</b>
+<p>I found this at <a href="http://www.freeflight.com/fms/comp/CPUs/68000.txt">http://www.freeflight.com/fms/comp/CPUs/68000.txt</a>
+and will save you some time by reprinting it here.
+<xmp>
+                         Motorola 68000 Instruction Set.
+-------------------------------------------------------------------------------
+
+                                                               Condition Codes
+                                                               ---------------
+                                          Assembler   Data
+Instruction Description                    Syntax     Size        X N Z V C
+-----------------------                   ---------   ----        ---------
+
+ABCD     Add BCD with extend                Dx,Dy      B--        * U * U *
+                                         -(Ax),-(Ay)
+ADD      ADD binary                        Dn,<ea>     BWL        * * * * *
+                                           <ea>,Dn
+ADDA     ADD binary to An                  <ea>,An     -WL        - - - - -
+ADDI     ADD Immediate                     #x,<ea>     BWL        * * * * *
+ADDQ     ADD 3-bit immediate             #<1-8>,<ea>   BWL        * * * * *
+ADDX     ADD eXtended                       Dy,Dx      BWL        * * * * *
+                                         -(Ay),-(Ax)
+AND      Bit-wise AND                      <ea>,Dn     BWL        - * * 0 0
+                                           Dn,<ea>
+ANDI     Bit-wise AND with Immediate    #<data>,<ea>   BWL        - * * 0 0
+ASL      Arithmetic Shift Left            #<1-8>,Dy    BWL        * * * * *
+                                            Dx,Dy
+                                            <ea>
+ASR      Arithmetic Shift Right              ...       BWL        * * * * *
+Bcc      Conditional Branch            Bcc.S <label>   BW-        - - - - -
+                                       Bcc.W <label>
+BCHG     Test a Bit and CHanGe             Dn,<ea>     B-L        - - * - -
+                                        #<data>,<ea>
+BCLR     Test a Bit and CLeaR                ...       B-L        - - * - -
+BSET     Test a Bit and SET                  ...       B-L        - - * - -
+BSR      Branch to SubRoutine          BSR.S <label>   BW-        - - - - -
+                                       BSR.W <label>
+BTST     Bit TeST                          Dn,<ea>     B-L        - - * - -
+                                        #<data>,<ea>
+CHK      CHecK Dn Against Bounds           <ea>,Dn     -W-        - * U U U
+CLR      CLeaR                              <ea>       BWL        - 0 1 0 0
+CMP      CoMPare                           <ea>,Dn     BWL        - * * * *
+CMPA     CoMPare Address                   <ea>,An     -WL        - * * * *
+CMPI     CoMPare Immediate              #<data>,<ea>   BWL        - * * * *
+CMPM     CoMPare Memory                  (Ay)+,(Ax)+   BWL        - * * * *
+DBcc     Looping Instruction          DBcc Dn,<label>  -W-        - - - - -
+DIVS     DIVide Signed                     <ea>,Dn     -W-        - * * * 0
+DIVU     DIVide Unsigned                   <ea>,Dn     -W-        - * * * 0
+EOR      Exclusive OR                      Dn,<ea>     BWL        - * * 0 0
+EORI     Exclusive OR Immediate         #<data>,<ea>   BWL        - * * 0 0
+EXG      Exchange any two registers         Rx,Ry      --L        - - - - -
+EXT      Sign EXTend                         Dn        -WL        - * * 0 0
+ILLEGAL  ILLEGAL-Instruction Exception     ILLEGAL                - - - - -
+JMP      JuMP to Affective Address          <ea>                  - - - - -
+JSR      Jump to SubRoutine                 <ea>                  - - - - -
+LEA      Load Effective Address            <ea>,An     --L        - - - - -
+LINK     Allocate Stack Frame       An,#<displacement>            - - - - -
+LSL      Logical Shift Left                 Dx,Dy      BWL        * * * 0 *
+                                          #<1-8>,Dy
+                                            <ea>
+LSR      Logical Shift Right                 ...       BWL        * * * 0 *
+MOVE     Between Effective Addresses      <ea>,<ea>    BWL        - * * 0 0
+MOVE     To CCR                           <ea>,CCR     -W-        I I I I I
+MOVE     To SR                             <ea>,SR     -W-        I I I I I
+MOVE     From SR                           SR,<ea>     -W-        - - - - -
+MOVE     USP to/from Address Register      USP,An      --L        - - - - -
+                                           An,USP
+MOVEA    MOVE Address                      <ea>,An     -WL        - - - - -
+MOVEM    MOVE Multiple            <register list>,<ea> -WL        - - - - -
+                                  <ea>,<register list>
+MOVEP    MOVE Peripheral                  Dn,x(An)     -WL        - - - - -
+                                          x(An),Dn
+MOVEQ    MOVE 8-bit immediate         #<-128.+127>,Dn  --L        - * * 0 0
+MULS     MULtiply Signed                   <ea>,Dn     -W-        - * * 0 0
+MULU     MULtiply Unsigned                 <ea>,Dn     -W-        - * * 0 0
+NBCD     Negate BCD                         <ea>       B--        * U * U *
+NEG      NEGate                             <ea>       BWL        * * * * *
+NEGX     NEGate with eXtend                 <ea>       BWL        * * * * *
+NOP      No OPeration                        NOP                  - -
+ - - -
+NOT      Form one's complement              <ea>       BWL        - * * 0 0
+OR       Bit-wise OR                       <ea>,Dn     BWL        - * * 0 0
+                                           Dn,<ea>
+ORI      Bit-wise OR with Immediate     #<data>,<ea>   BWL        - * * 0 0
+PEA      Push Effective Address             <ea>       --L        - - - - -
+RESET    RESET all external devices         RESET                 - - - - -
+ROL      ROtate Left                      #<1-8>,Dy    BWL        - * * 0 *
+                                            Dx,Dy
+                                            <ea>
+ROR      ROtate Right                        ...       BWL        - * * 0 *
+ROXL     ROtate Left with eXtend             ...       BWL        * * * 0 *
+ROXR     ROtate Right with eXtend            ...       BWL        * * * 0 *
+RTE      ReTurn from Exception               RTE                  I I I I I
+RTR      ReTurn and Restore                  RTR                  I I I I I
+RTS      ReTurn from Subroutine              RTS                  - - - - -
+SBCD     Subtract BCD with eXtend           Dx,Dy      B--        * U * U *
+                                         -(Ax),-(Ay)
+Scc      Set to -1 if True, 0 if False      <ea>       B--        - - - - -
+STOP     Enable & wait for interrupts      #<data>                I I I I I
+SUB      SUBtract binary                   Dn,<ea>     BWL        * * * * *
+                                           <ea>,Dn
+SUBA     SUBtract binary from An           <ea>,An     -WL        - - - - -
+SUBI     SUBtract Immediate                #x,<ea>     BWL        * * * * *
+SUBQ     SUBtract 3-bit immediate       #<data>,<ea>   BWL        * * * * *
+SUBX     SUBtract eXtended                  Dy,Dx      BWL        * * * * *
+                                         -(Ay),-(Ax)
+SWAP     SWAP words of Dn                    Dn        -W-        - * * 0 0
+TAS      Test & Set MSB & Set N/Z-bits      <ea>       B--        - * * 0 0
+TRAP     Execute TRAP Exception           #<vector>               - - - - -
+TRAPV    TRAPV Exception if V-bit Set       TRAPV                 - - - - -
+TST      TeST for negative or zero          <ea>       BWL        - * * 0 0
+UNLK     Deallocate Stack Frame              An                   - - - - -
+
+-------------------------------------------------------------------------------
+
+Symbol   Meaning
+------   -------
+
+   *     Set according to result of operation
+   -     Not affected
+   0     Cleared
+   1     Set
+   U     Outcome (state after operation) undefined
+   I     Set by immediate data
+
+<ea>     Effective Address Operand
+<data>   Immediate data
+<label>  Assembler label
+<vector> TRAP instruction Exception vector (0-15)
+<rg.lst> MOVEM instruction register specification list
+<displ.> LINK instruction negative displacement
+...      Same as previous instruction
+
+-------------------------------------------------------------------------------
+
+Addressing Modes                                   Syntax
+----------------                                   ------
+
+Data Register Direct   
+                              Dn
+Address Register Direct                              An
+Address Register Indirect                           (An)
+Address Register Indirect with Post-Increment       (An)+
+Address Register Indirect with Pre-Decrement        -(An)
+Address Register Indirect with Displacement         w(An)
+Address Register Indirect with Index               b(An,Rx)
+Absolute Short                                        w
+Absolute Long                                         l
+Program Counter with Displacement                   w(PC)
+Program Counter with Index                         b(PC,Rx)
+Immediate                                             #x
+Status Register                                       SR
+Condition Code Register                              CCR
+
+Legend
+------
+   Dn    Data Register        (n is 0-7)
+   An    Address Register     (n is 0-7)
+    b    08-bit constant
+    w    16-bit constant
+    l    32-bit constant
+    x    8-, 16-, 32-bit constant
+   Rx    Index Register Specification, one of:
+            Dn.W  Low 16 bits of Data Register
+            Dn.L  All 32 bits of Data Register
+            An.W  Low 16 bits of Address Register
+            An.L  All 32 bits of Address Register
+
+-------------------------------------------------------------------------------
+
+             Condition Codes for Bcc, DBcc and Scc Instructions.
+             ---------------------------------------------------
+
+               Condition Codes set after CMP D0,D1 Instruction.
+
+Relationship      Unsigned                         Signed
+------------      --------                         ------
+
+D1 <  D0          CS - Carry Bit Set               LT - Less Than
+D1 <= D0          LS - Lower or Same               LE - Less than or Equal
+D1  = D0          EQ - Equal (Z-bit Set)           EQ - Equal (Z-bit Set)
+D1 != D0          NE - Not Equal (Z-bit Clear)     NE - Not Equal (Z-bit Clear)
+D1 >  D0          HI - HIgher than                 GT - Greater Than
+D1 >= D0          CC - Carry Bit Clear             GE - Greater than or Equal
+
+                  PL - PLus (N-bit Clear)          MI - Minus (N-bit Set)
+                  VC - V-bit Clear (No Overflow)   VS - V-bit Set (Overflow)
+                  RA - BRanch Always
+
+DBcc Only    -     F - Never Terminate (DBRA is an alternate to DBF)
+                   T - Always Terminate
+
+Scc Only     -    SF - Never Set
+                  ST - Always Set
+
+-------------------------------------------------------------------------------
+
+Parts from "Programming the 68000" by Steve Williams. (c) 1985 Sybex Inc.
+Parts from BYTE Magazine article.
+
+Compiled by Diego Barros.        e-mail : alien@zikzak.apana.org.au
+Revision 2.1                     22 May, 1994
+
+</xmp>
+<hr noshade="">
+</body>
+</html>

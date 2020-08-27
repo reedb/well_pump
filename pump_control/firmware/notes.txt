@@ -1,0 +1,43 @@
+Firmware for Arduino based pump_control
+
+Source code: pump_control.cpp
+
+Update arduino environment for this project before building:
+./update_arduino_prefs
+
+Build source script: ./build_project
+
+
+
+Arduino settings (set with: ./update_arduino_prefs):
+
+Board: Pro Trinket 5V/16MHz (USB)
+Programmer: USBtinyISP
+
+Arduino IDE 1.6.5
+
+Arduino preferences file location:
+/Users/reedb/Library/Arduino15/preferences.txt
+
+
+
+Reset board before programming (use ./upload).
+
++----------------+-----+-----+-----+-----+-----+-----+
+| LCD pin name   | RS  | EN  | DB4 | DB5 | DB6 | DB7 |
++----------------+-----+-----+-----+-----+-----+-----+
+| Arduino Pin    | D10 | D9  | D3  | D4  | D5  | D6  |
++----------------+-----+-----+-----+-----+-----+-----+
+
+LiquidCrystal lcd(10, 9, 3, 4, 5, 6);
+
+lcd.begin(20, 4);	// 20x4 Characters
+
+A0 - Tank, 4-20ma
+A1 - Well, 4-20ma
+
+D11 - Pump, SSR
+D12 - Alarm, SSR
+
+
+Old PIC code: well_control.c
