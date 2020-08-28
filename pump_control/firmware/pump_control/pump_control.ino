@@ -14,6 +14,16 @@
 //        Board: Pro Trinket 5V/16MHz (USB)
 //        Programmer: USBtinyISP
 //
+//      Possible faults:
+//        "Sensor Low"     - Control problem, sensor out of range.
+//        "Sensor High"    - Control problem, sensor out of range.
+//        "Rapid Cycling"  - Control problem, attempting to switch the pump on/off too quickly.
+//        "Bad State"      - Control problem, unknow software state.
+//
+//        "Low Tank Level" - Tank level below threshold.
+//        "Low Well Level" - Well level below threshold.
+//        "Pump Long Run"  - Pump run time above threshold.
+//         
 //*****************************************************************************
 
 #include <LiquidCrystal.h>
@@ -31,7 +41,7 @@
 #define HIGH_ERR_THRES_4_20 1000    // Error if greater than this value
 #define TANK_RANGE          5.0f    // Tank sensor:0-5 PSI
 #define WELL_RANGE          60.0f   // Well sensor:0-60 PSI
-#define WATER_COLUMN        0.4327f // Water, psi / foot
+#define WATER_COLUMN        0.4327f // Water Column (WC) presure to height, psi / foot
 #define FULL_TANK           7.33f   // Full tank is 7' 4 inches
 
 #define MIN_STATE_TIME      60L     // If we're not in a state for at least this number of seconds, something is wrong 
@@ -40,9 +50,12 @@
 #define STOP_HEIGHT_PERCENT  100    // Pump stops when tank level rises to this value
 #define ALARM_HEIGHT_PERCENT 80     // Pump stops alarm sounds when tank level drops to this value
 
+#define STOP_WELL_LEVEL_FEET 20     // Pump stops when tank level drops to this value.
+
 #define STATE_FILL      0
-#define STATE_WAIT      1
-#define STATE_PUMP      2
+#define STATE_FILL_WAIT 1
+#define STATE_WAIT      2
+#define STATE_PUMP      3
 
 //*****************************************************************************
 //
@@ -54,8 +67,9 @@ int g_iState = STATE_FILL;
 
 int TankPin  = 0;       // 4-20ma interface for tank presure, 0-5 PSI
 int WellPin  = 1;       // 4-20ma interface for well bore presure, 0-60 PSI
-int PumpPin  = 11;      // Solid Stae Relay (SSR), 40A, High: On
-int AlarmPin = 12;      // Solid Stae Relay (SSR), 40A, High: On
+int PumpPin  = 11;      // Solid Stae Relay (SSR), 40A, High: Pump On
+int AlarmPin = 12;      // Solid Stae Relay (SSR), 40A, High: Alarm On
+int LEDPin   = 13;      // Red user status LED mounted on ProTrinket board.
 
 float g_fTank        = 0.0;   // Tank water column height
 int   g_iTankPercent =   0;   // Percetage of tank remaining
@@ -64,7 +78,7 @@ float g_fWell = 0.0;            // Well bore water column height
 float g_fWB_Turnoff = 0.0;      // Well bore water column height at pump shutoff
 float g_fWB_Turnon = 0.0;       // Well bore water column height at pump turn on
 
-long g_lTicks = 0;      // One second tick counter
+volatile long g_lTicks = 0;     // One second tick counter, updated by timer1 ISR
 
 long g_lLastStateChange = 0;
 
@@ -127,7 +141,7 @@ void DisplayHeights(void)
 
 //*****************************************************************************
 //
-//  Display - Display data on LCD.
+//  Display - Display data on LCD. Display is 20 x 4 ASCII Characters.
 //
 //  Parameters - None
 //
@@ -278,12 +292,29 @@ int NextState(int iState)
     //
     if (g_lLastStateChange) {
         if ((g_lTicks - g_lLastStateChange) < MIN_STATE_TIME) {
-            Fault("Rapid cycling");
+            Fault("Rapid Cycling");
         }
     }
     
     g_lLastStateChange = g_lTicks;
     return iState;
+}
+
+//*****************************************************************************
+//
+//  TIMER1_COMPA_vect - Inerupt service routine, updates 1Hz tick count.
+//
+//  Parameters - None
+//
+//  Returns - Nothing
+//
+//*****************************************************************************
+
+ISR(TIMER1_COMPA_vect)
+{
+    g_lTicks++;
+    if (g_lTicks & 1) digitalWrite(LEDPin, HIGH);
+    else  digitalWrite(LEDPin, LOW);
 }
 
 //*****************************************************************************
@@ -297,6 +328,18 @@ int NextState(int iState)
 //*****************************************************************************
 
 void setup(void) {
+
+  // Set timer1 to interrupt at 1Hz
+
+  cli();                // stop interrupts
+  TCCR1A = 0;           // set entire TCCR1A register to 0
+  TCCR1B = 0;           // same for TCCR1B
+  TCNT1  = 0;           // initialize counter value to 0
+  OCR1A = 15624;        // = (16*10^6) / (1*1024) - 1 (must be <65536)
+  TCCR1B |= (1 << WGM12);
+  TCCR1B |= (1 << CS12) | (1 << CS10);  
+  TIMSK1 |= (1 << OCIE1A);
+  sei();                //allow interrupts
     
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 4);  // 20x4 Characters
@@ -307,11 +350,12 @@ void setup(void) {
   // Setup SSR output pins
   digitalWrite(PumpPin,  LOW);
   digitalWrite(AlarmPin, LOW);
-  pinMode(PumpPin, OUTPUT);  // Pump
-  pinMode(AlarmPin, OUTPUT);  // Alarm
+  pinMode(PumpPin, OUTPUT);     // Pump
+  pinMode(AlarmPin, OUTPUT);    // Alarm
+  pinMode(LEDPin, OUTPUT);      // Status LED
   
   while (!Serial); // wait for Serial port to connect.
-  Serial.println("Well Pump Controller Ver 2.2\n");  
+  Serial.println("Well Pump Controller Ver 2.3\n");  
   LogState2Serial();
   
   analogReference(DEFAULT); // Analog reference of 5 volts
@@ -347,7 +391,10 @@ void loop(void) {
             }
             else digitalWrite(PumpPin, HIGH);
             break;
-                
+        
+        case STATE_FILL_WAIT:
+            break;
+            
         case STATE_WAIT:
             if (g_iTankPercent < START_HEIGHT_PERCENT) {
                 g_fWB_Turnon = g_fWell;
@@ -366,5 +413,4 @@ void loop(void) {
             
        default: Fault("Bad State");
     }
-    g_lTicks++;
 }

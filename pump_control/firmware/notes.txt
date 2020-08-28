@@ -5,13 +5,14 @@ Source code: pump_control.cpp
 Update arduino environment for this project before building:
 ./update_arduino_prefs
 
-Build source script: ./build_project
+Build: ./build_project
 
-
+Use ProTrinket built in USB port to program (optiboot loader). 
+You have 8 seconds after reset to program using the optiboot loader.
 
 Arduino settings (set with: ./update_arduino_prefs):
 
-Board: Pro Trinket 5V/16MHz (USB)
+Board: AdaFruit Pro Trinket 5V/16MHz (USB) 
 Programmer: USBtinyISP
 
 Arduino IDE 1.6.5
@@ -19,9 +20,8 @@ Arduino IDE 1.6.5
 Arduino preferences file location:
 /Users/reedb/Library/Arduino15/preferences.txt
 
-
-
 Reset board before programming (use ./upload).
+
 
 +----------------+-----+-----+-----+-----+-----+-----+
 | LCD pin name   | RS  | EN  | DB4 | DB5 | DB6 | DB7 |
@@ -40,4 +40,4 @@ D11 - Pump, SSR
 D12 - Alarm, SSR
 
 
-Old PIC code: well_control.c
+open ~/projects/ProTrinket/adafruit_products_pro5.png
