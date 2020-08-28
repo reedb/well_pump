@@ -1,4 +1,8 @@
 .DS_Store
+build/core/
+build/includes.cache
+build/preproc/
+build/sketch/
 *.eep
 *.elf
 *.json

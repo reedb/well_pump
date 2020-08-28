@@ -1,6 +1,0 @@
-Tanks sensor interface and line driver
-
-MB7569:
-http://www.maxbotix.com/documents/SCXL-MaxSonar-WR_Datasheet.pdf
-
-

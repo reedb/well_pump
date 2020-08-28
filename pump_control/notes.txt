@@ -3,7 +3,6 @@ Well Pump Control:
 Well Bore Water Level sensor:
 http://www.setra.com/contact-us
 open Setra_Model_526_Data_Sheet.pdf
-What is the loop power supply minimum voltage?
 Part No. 5261060PGW211UEF - Model 526 Pressure Transducer, 60 PSI, Gauge Pressure, Stainless Steel Sink Weight Nose Cone, 4-20 mA Output, 30 meters Molded Immersible Cable, 0.25% Accuracy.
 
 
