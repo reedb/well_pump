@@ -20,9 +20,9 @@
 //        "Rapid Cycling"  - Control problem, attempting to switch the pump on/off too quickly.
 //        "Bad State"      - Control problem, unknow software state.
 //
-//        "Low Tank Level" - Tank level below threshold.
-//        "Low Well Level" - Well level below threshold.
-//        "Pump Long Run"  - Pump run time above threshold.
+//        "Low Tank Level" - Tank level below threshold (only in STATE_PUMP).
+//        "Low Well Level" - Well level below threshold (only in STATE_PUMP).
+//        "Pump Long Run"  - Pump run time above threshold (only in STATE_PUMP).
 //         
 //*****************************************************************************
 
@@ -46,12 +46,14 @@
 #define FULL_TANK           7.33f   // Full tank is 7' 4 inches
 
 #define MIN_STATE_TIME      60L     // If we're not in a state for at least this number of seconds, something is wrong 
+#define MAX_PUMP_TIME       21600L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
+#define FILL_WAIT_TIME      3600L   // Time to spent in the FILL_WAIT state [s]
 
 #define START_HEIGHT_PERCENT 90     // Pump starts when tank level drops to this value
 #define STOP_HEIGHT_PERCENT  100    // Pump stops when tank level rises to this value
 #define ALARM_HEIGHT_PERCENT 80     // Pump stops alarm sounds when tank level drops to this value
 
-#define STOP_WELL_LEVEL_FEET 20     // Pump stops when tank level drops to this value.
+#define STOP_WELL_LEVEL_FEET  20.0  // Pump stops when well level drops to this value. [ft]
 
 #define STATE_FILL      0
 #define STATE_FILL_WAIT 1
@@ -72,12 +74,14 @@ int PumpPin  = 11;      // Solid Stae Relay (SSR), 40A, High: Pump On
 int AlarmPin = 12;      // Solid Stae Relay (SSR), 40A, High: Alarm On
 int LEDPin   = 13;      // Red user status LED mounted on ProTrinket board.
 
-float g_fTank        = 0.0;   // Tank water column height
+float g_fTank        = 0.0;   // Tank water column height [ft]
 int   g_iTankPercent =   0;   // Percetage of tank remaining
 
-float g_fWell = 0.0;            // Well bore water column height
-float g_fWB_Turnoff = 0.0;      // Well bore water column height at pump shutoff
-float g_fWB_Turnon = 0.0;       // Well bore water column height at pump turn on
+float g_fWell = 0.0;            // Well bore water column height [ft]
+float g_fWB_Turnoff = 0.0;      // Well bore water column height at pump shutoff [ft]
+float g_fWB_Turnon = 0.0;       // Well bore water column height at pump turn on [ft] 
+
+unsigned long g_ulLastStateChange = 0; // Last time that we changed state [s]
 
 volatile unsigned long g_ulTicks = 0;     // One second tick counter, updated by timer1 ISR
 
@@ -149,13 +153,13 @@ void DisplayHeights(void)
 //
 //*****************************************************************************
 
-char *State2Str(int iState)
+const char *State2Str(int iState)
 {
     switch (iState) {
         case STATE_FILL: return("Fillling");
         case STATE_FILL_WAIT: return("Fill Wait");
         case STATE_WAIT: return("Waiting");
-        case STATE_PUMP: return("Pumping");
+        case STATE_PUMP: return("Pump");
         default: return("Unknown");
     }    
 }
@@ -292,8 +296,6 @@ void CalcHeights(void)
 
 int NextState(int iState)
 {   
-    static unsigned long ulLastStateChange = 0; 
-
     // Log the state change.
     //
     Serial.print("New State: "); Serial.println(iState);
@@ -301,13 +303,13 @@ int NextState(int iState)
     
     // Make sure we're not changing state too rapidly
     //
-    if (ulLastStateChange) {
-        if ((GetTickCount() - ulLastStateChange) < MIN_STATE_TIME) {
+    if (g_ulLastStateChange) {
+        if ((GetTickCount() - g_ulLastStateChange) < MIN_STATE_TIME) {
             Fault("Rapid Cycling");
         }
     }
     
-    ulLastStateChange = GetTickCount();
+    g_ulLastStateChange = GetTickCount();
     return iState;
 }
 
@@ -411,9 +413,6 @@ void loop(void) {
     while (ulLastTick == GetTickCount());
 
     CalcHeights();
-    if (g_iState != STATE_FILL) {
-        if (g_iTankPercent < ALARM_HEIGHT_PERCENT) Fault("Low Tank Level");
-    }
     
     switch (g_iState) {
         case STATE_FILL:
@@ -421,10 +420,17 @@ void loop(void) {
                 g_fWB_Turnoff = g_fWell;
                 g_iState = NextState(STATE_WAIT);
             }
+            else if (g_fWell < STOP_WELL_LEVEL_FEET) {
+                g_iState = NextState(STATE_FILL_WAIT);
+            }
             else digitalWrite(PumpPin, HIGH);
             break;
         
         case STATE_FILL_WAIT:
+            if (GetTickCount() - g_ulLastStateChange > FILL_WAIT_TIME) {
+                g_iState = NextState(STATE_FILL);
+            }
+            else digitalWrite(PumpPin, LOW);
             break;
             
         case STATE_WAIT:
@@ -435,7 +441,10 @@ void loop(void) {
             else digitalWrite(PumpPin, LOW);
             break;
             
-        case STATE_PUMP:
+        case STATE_PUMP:  
+            if (g_fWell < STOP_WELL_LEVEL_FEET)         Fault("Low Well Level");
+            if (g_iTankPercent < ALARM_HEIGHT_PERCENT)  Fault("Low Tank Level");
+            if (GetTickCount() - g_ulLastStateChange > MAX_PUMP_TIME) Fault("Pump Long Run");
             if (g_iTankPercent >= STOP_HEIGHT_PERCENT) {
                 g_fWB_Turnoff = g_fWell;
                 g_iState = NextState(STATE_WAIT);
@@ -443,7 +452,8 @@ void loop(void) {
             else digitalWrite(PumpPin, HIGH);
             break;
             
-       default: Fault("Bad State");
+        default:
+            Fault("Bad State");
     }
     ulLastTick = GetTickCount();
 }
