@@ -28,6 +28,7 @@
 
 #include <LiquidCrystal.h>
 #include <math.h>
+#include <util/atomic.h>
 
 //*****************************************************************************
 //
@@ -78,9 +79,7 @@ float g_fWell = 0.0;            // Well bore water column height
 float g_fWB_Turnoff = 0.0;      // Well bore water column height at pump shutoff
 float g_fWB_Turnon = 0.0;       // Well bore water column height at pump turn on
 
-volatile long g_lTicks = 0;     // One second tick counter, updated by timer1 ISR
-
-long g_lLastStateChange = 0;
+volatile unsigned long g_ulTicks = 0;     // One second tick counter, updated by timer1 ISR
 
 // Initialize the library with the numbers of the interface pins
 // LiquidCrystal(rs, enable, d4, d5, d6, d7)
@@ -129,7 +128,7 @@ void DisplayHeights(void)
     lcd.print(g_iTankPercent);
     lcd.print("%)");  
 
-    if (g_lTicks & 1) {
+    if (GetTickCount() & 1) {
         lcd.setCursor(0, 3); lcd.print("Well@On: "); lcd.print(g_fWB_Turnon); 
         lcd.print("' ");
     }
@@ -137,6 +136,28 @@ void DisplayHeights(void)
         lcd.setCursor(0, 3); lcd.print("Well@Off: "); lcd.print(g_fWB_Turnoff); 
         lcd.print("'");
     }
+}
+
+//*****************************************************************************
+//
+//  State2Str - Convert state to string.
+//
+//  Parameters
+//      iState - State to convert to string.
+//
+//  Returns - String representation of passed state.
+//
+//*****************************************************************************
+
+char *State2Str(int iState)
+{
+    switch (iState) {
+        case STATE_FILL: return("Fillling");
+        case STATE_FILL_WAIT: return("Fill Wait");
+        case STATE_WAIT: return("Waiting");
+        case STATE_PUMP: return("Pumping");
+        default: return("Unknown");
+    }    
 }
 
 //*****************************************************************************
@@ -154,18 +175,7 @@ void Display(void)
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("State: ");
-    switch (g_iState) {
-        case STATE_FILL:
-            lcd.print("Fillling");
-            break;     
-        case STATE_WAIT:
-            lcd.print("Waiting");
-            break;
-        case STATE_PUMP:
-            lcd.print("Pumping");
-            break;
-        default: lcd.print("Unknown");
-    }    
+    lcd.print(State2Str(g_iState));
     DisplayHeights();
 }
 
@@ -183,9 +193,8 @@ void LogState2Serial(void)
 {
     // Log the state change.
     //
-    Serial.print("Ticks: "); Serial.print(g_lTicks); Serial.println(" seconds. ");
-    Serial.print("Current State: "); Serial.println(g_iState);
-    Serial.print("Last State change @ "); Serial.println(g_lLastStateChange);
+    Serial.print("Ticks: "); Serial.print(GetTickCount()); Serial.println(" seconds. ");
+    Serial.print("Current State: "); Serial.println(State2Str(g_iState));
     Serial.print("Tank: "); Serial.println(g_fTank);
     Serial.print("Well: "); Serial.println(g_fWell);
     Serial.print("Well @ last pump turn on: "); Serial.println(g_fWB_Turnon);
@@ -210,7 +219,7 @@ void Fault(const char *psz)
     digitalWrite(AlarmPin, HIGH);
 
     Serial.print("Fault @ ");
-    Serial.print(g_lTicks); 
+    Serial.print(GetTickCount()); 
     Serial.print(" seconds. ");
     Serial.println(psz);
     LogState2Serial();
@@ -282,7 +291,9 @@ void CalcHeights(void)
 //*****************************************************************************
 
 int NextState(int iState)
-{
+{   
+    static unsigned long ulLastStateChange = 0; 
+
     // Log the state change.
     //
     Serial.print("New State: "); Serial.println(iState);
@@ -290,14 +301,33 @@ int NextState(int iState)
     
     // Make sure we're not changing state too rapidly
     //
-    if (g_lLastStateChange) {
-        if ((g_lTicks - g_lLastStateChange) < MIN_STATE_TIME) {
+    if (ulLastStateChange) {
+        if ((GetTickCount() - ulLastStateChange) < MIN_STATE_TIME) {
             Fault("Rapid Cycling");
         }
     }
     
-    g_lLastStateChange = g_lTicks;
+    ulLastStateChange = GetTickCount();
     return iState;
+}
+
+//*****************************************************************************
+//
+//  GetTickCount - Get the tick count since start up.
+//
+//  Parameters - None
+//
+//  Returns - Tick count in seconds.
+//
+//*****************************************************************************
+
+unsigned long GetTickCount(void)
+{   
+    unsigned long ulTicks;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        ulTicks = g_ulTicks;
+    }
+    return ulTicks;
 }
 
 //*****************************************************************************
@@ -312,8 +342,8 @@ int NextState(int iState)
 
 ISR(TIMER1_COMPA_vect)
 {
-    g_lTicks++;
-    if (g_lTicks & 1) digitalWrite(LEDPin, HIGH);
+    g_ulTicks++;
+    if (g_ulTicks & 1) digitalWrite(LEDPin, HIGH);
     else  digitalWrite(LEDPin, LOW);
 }
 
@@ -374,9 +404,11 @@ void setup(void) {
 //*****************************************************************************
 
 void loop(void) {
-
+    static unsigned long ulLastTick = 0;
+    
+    if ((GetTickCount() % 5) == 0) LogState2Serial();
     Display();
-    delay(1000);
+    while (ulLastTick == GetTickCount());
 
     CalcHeights();
     if (g_iState != STATE_FILL) {
@@ -413,4 +445,5 @@ void loop(void) {
             
        default: Fault("Bad State");
     }
+    ulLastTick = GetTickCount();
 }
