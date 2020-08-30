@@ -7,6 +7,6 @@ sudo cp -v /Users/reedb/projects/well_pump/pump_control/firmware/pump_control.cp
 /Applications/Arduino.app/Contents/MacOS/Arduino --verify --verbose-build ~/projects/well_pump/pump_control/firmware/pump_control/pump_control.ino
 
 # Delete copied INO file.
-rm pump_control/pump_control.ino
+sudo rm pump_control/pump_control.ino
 
 #/Applications/Arduino.app/Contents/Java/hardware/tools/avr/bin/avrdude -C/Applications/Arduino.app/Contents/Java/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -cusbtiny -Uflash:w:/Users/reedb/projects/well_pump/pump_control/firmware/build/pump_control.ino.hex:i 

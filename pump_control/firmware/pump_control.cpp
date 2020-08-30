@@ -45,9 +45,12 @@
 #define WATER_COLUMN        0.4327f // Water Column (WC) presure to height, psi / foot
 #define FULL_TANK           7.33f   // Full tank is 7' 4 inches
 
-#define MIN_STATE_TIME      60L     // If we're not in a state for at least this number of seconds, something is wrong 
-#define MAX_PUMP_TIME       21600L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
-#define FILL_WAIT_TIME      3600L   // Time to spent in the FILL_WAIT state [s]
+//#define MIN_STATE_TIME      60L     // If we're not in a state for at least this number of seconds, something is wrong 
+//#define MAX_PUMP_TIME       21600L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
+//#define FILL_WAIT_TIME      3600L   // Time to spent in the FILL_WAIT state [s]
+#define MIN_STATE_TIME      1L     // If we're not in a state for at least this number of seconds, something is wrong 
+#define MAX_PUMP_TIME       90L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
+#define FILL_WAIT_TIME      61L   // Time to spent in the FILL_WAIT state [s]
 
 #define START_HEIGHT_PERCENT 90     // Pump starts when tank level drops to this value
 #define STOP_HEIGHT_PERCENT  100    // Pump stops when tank level rises to this value
@@ -77,11 +80,12 @@ int LEDPin   = 13;      // Red user status LED mounted on ProTrinket board.
 float g_fTank        = 0.0;   // Tank water column height [ft]
 int   g_iTankPercent =   0;   // Percetage of tank remaining
 
-float g_fWell = 0.0;            // Well bore water column height [ft]
-float g_fWB_Turnoff = 0.0;      // Well bore water column height at pump shutoff [ft]
-float g_fWB_Turnon = 0.0;       // Well bore water column height at pump turn on [ft] 
+float g_fWell = 0.0;          // Well bore water column height [ft]
+float g_fWB_Turnoff = 0.0;    // Well bore water column height at pump shutoff [ft]
+float g_fWB_Turnon = 0.0;     // Well bore water column height at pump turn on [ft] 
 
-unsigned long g_ulLastStateChange = 0; // Last time that we changed state [s]
+unsigned long g_ulPumpLastStart   = 0; // Last time the pump started [s]
+unsigned long g_ulPumpLastStop    = 0; // Last time the pump stopped [s]
 
 volatile unsigned long g_ulTicks = 0;     // One second tick counter, updated by timer1 ISR
 
@@ -156,9 +160,9 @@ void DisplayHeights(void)
 const char *State2Str(int iState)
 {
     switch (iState) {
-        case STATE_FILL: return("Fillling");
+        case STATE_FILL: return("Fill");
         case STATE_FILL_WAIT: return("Fill Wait");
-        case STATE_WAIT: return("Waiting");
+        case STATE_WAIT: return("Wait");
         case STATE_PUMP: return("Pump");
         default: return("Unknown");
     }    
@@ -180,6 +184,11 @@ void Display(void)
     lcd.setCursor(0, 0);
     lcd.print("State: ");
     lcd.print(State2Str(g_iState));
+    if ((g_iState == STATE_PUMP) || (g_iState == STATE_FILL)) {
+        lcd.print(" ");  
+        lcd.print(TimeSince(g_ulPumpLastStart) / 60);
+        lcd.print("min");  
+    }
     DisplayHeights();
 }
 
@@ -196,10 +205,18 @@ void Display(void)
 void LogState2Serial(void)
 {
     // Log the state change.
-    //
+    // 
+    Serial.println("");
     Serial.print("Ticks: "); Serial.print(GetTickCount()); Serial.println(" seconds. ");
-    Serial.print("Current State: "); Serial.println(State2Str(g_iState));
-    Serial.print("Tank: "); Serial.println(g_fTank);
+    Serial.print("State: "); Serial.print(State2Str(g_iState));
+    if ((g_iState == STATE_PUMP) || (g_iState == STATE_FILL)) { 
+        Serial.print(" ");  
+        Serial.print(TimeSince(g_ulPumpLastStart) / 60);
+        Serial.println("min");  
+    }
+    else Serial.println("");
+    Serial.print("Tank: "); Serial.print(g_fTank);Serial.print("' (");
+    Serial.print(g_iTankPercent);Serial.println("%)");  
     Serial.print("Well: "); Serial.println(g_fWell);
     Serial.print("Well @ last pump turn on: "); Serial.println(g_fWB_Turnon);
     Serial.print("Well @ last pump turn off: "); Serial.println(g_fWB_Turnoff);
@@ -222,9 +239,10 @@ void Fault(const char *psz)
     digitalWrite(PumpPin,  LOW);
     digitalWrite(AlarmPin, HIGH);
 
+    Serial.println("");
     Serial.print("Fault @ ");
     Serial.print(GetTickCount()); 
-    Serial.print(" seconds. ");
+    Serial.print(" seconds!!!!!!!!!!!!!");
     Serial.println(psz);
     LogState2Serial();
     
@@ -285,6 +303,34 @@ void CalcHeights(void)
 
 //*****************************************************************************
 //
+//  PumpOn, PumpOff - Turn the pump on/off, but only toggle.
+//
+//  Parameters - None
+//
+//  Returns - Nothing
+//
+//*****************************************************************************
+
+void PumpOn(void)
+{  
+    if (digitalRead(PumpPin) == 0) {
+        g_fWB_Turnon = g_fWell;
+        g_ulPumpLastStart = GetTickCount();
+        digitalWrite(PumpPin, HIGH);
+    }
+}
+
+void PumpOff(void)
+{
+   if (digitalRead(PumpPin) == 1) {
+       g_fWB_Turnoff = g_fWell;
+       g_ulPumpLastStop = GetTickCount();
+       digitalWrite(PumpPin, LOW); 
+   }
+}
+
+//*****************************************************************************
+//
 //  NextState - Preform state change logging and checks.
 //
 //  Parameters
@@ -297,19 +343,21 @@ void CalcHeights(void)
 int NextState(int iState)
 {   
     // Log the state change.
-    //
+    // 
+    static unsigned long ulLastStateChange = 0;
+    
     Serial.print("New State: "); Serial.println(iState);
     LogState2Serial();
     
     // Make sure we're not changing state too rapidly
     //
-    if (g_ulLastStateChange) {
-        if ((GetTickCount() - g_ulLastStateChange) < MIN_STATE_TIME) {
+    if (ulLastStateChange) {
+        if ((TimeSince(ulLastStateChange)) < MIN_STATE_TIME) {
             Fault("Rapid Cycling");
         }
     }
     
-    g_ulLastStateChange = GetTickCount();
+    ulLastStateChange = GetTickCount();
     return iState;
 }
 
@@ -331,6 +379,23 @@ unsigned long GetTickCount(void)
     }
     return ulTicks;
 }
+
+//*****************************************************************************
+//
+//  TimeSince - Get the tick count since event occured.
+//
+//  Parameters 
+//    ulEventTime - Event time in seconds.
+//
+//  Returns - Tick count in seconds since event occured.
+//
+//*****************************************************************************
+
+unsigned long TimeSince(unsigned long ulEventTime)
+{   
+    return GetTickCount() - ulEventTime;
+}
+
 
 //*****************************************************************************
 //
@@ -382,9 +447,9 @@ void setup(void) {
   // Setup SSR output pins
   digitalWrite(PumpPin,  LOW);
   digitalWrite(AlarmPin, LOW);
-  pinMode(PumpPin, OUTPUT);     // Pump
+  pinMode(PumpPin,  OUTPUT);    // Pump
   pinMode(AlarmPin, OUTPUT);    // Alarm
-  pinMode(LEDPin, OUTPUT);      // Status LED
+  pinMode(LEDPin,   OUTPUT);    // Status LED
   
   while (!Serial); // wait for Serial port to connect.
   Serial.println("Well Pump Controller Ver 2.3\n");  
@@ -392,7 +457,7 @@ void setup(void) {
   
   analogReference(DEFAULT); // Analog reference of 5 volts
   pinMode(TankPin, INPUT);
-  pinMode(WellPin, INPUT);
+  pinMode(WellPin, INPUT); 
 }
 
 //*****************************************************************************
@@ -410,6 +475,8 @@ void loop(void) {
     
     if ((GetTickCount() % 5) == 0) LogState2Serial();
     Display();
+    
+    // Loop to run once per second.
     while (ulLastTick == GetTickCount());
 
     CalcHeights();
@@ -417,39 +484,36 @@ void loop(void) {
     switch (g_iState) {
         case STATE_FILL:
             if (g_iTankPercent >= STOP_HEIGHT_PERCENT) {
-                g_fWB_Turnoff = g_fWell;
                 g_iState = NextState(STATE_WAIT);
             }
             else if (g_fWell < STOP_WELL_LEVEL_FEET) {
                 g_iState = NextState(STATE_FILL_WAIT);
             }
-            else digitalWrite(PumpPin, HIGH);
+            else PumpOn();
             break;
         
         case STATE_FILL_WAIT:
-            if (GetTickCount() - g_ulLastStateChange > FILL_WAIT_TIME) {
+            PumpOff();
+            if (TimeSince(g_ulPumpLastStop) > FILL_WAIT_TIME) {
                 g_iState = NextState(STATE_FILL);
             }
-            else digitalWrite(PumpPin, LOW);
             break;
             
         case STATE_WAIT:
             if (g_iTankPercent < START_HEIGHT_PERCENT) {
-                g_fWB_Turnon = g_fWell;
                 g_iState = NextState(STATE_PUMP);
             }
-            else digitalWrite(PumpPin, LOW);
+            else PumpOff();
             break;
             
         case STATE_PUMP:  
             if (g_fWell < STOP_WELL_LEVEL_FEET)         Fault("Low Well Level");
             if (g_iTankPercent < ALARM_HEIGHT_PERCENT)  Fault("Low Tank Level");
-            if (GetTickCount() - g_ulLastStateChange > MAX_PUMP_TIME) Fault("Pump Long Run");
             if (g_iTankPercent >= STOP_HEIGHT_PERCENT) {
-                g_fWB_Turnoff = g_fWell;
                 g_iState = NextState(STATE_WAIT);
             }
-            else digitalWrite(PumpPin, HIGH);
+            else PumpOn();
+            if (TimeSince(g_ulPumpLastStart) > MAX_PUMP_TIME) Fault("Pump Long Run");
             break;
             
         default:
