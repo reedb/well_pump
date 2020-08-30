@@ -36,9 +36,9 @@
 //
 //***************************************************************************** 
 
-#define VER_STRING          "\n\nWell Pump Controller Ver 2.31\n"
+#define VER_STRING          "\n\nWell Pump Controller Ver 2.33\n"
 #define LCD_SPLASH_STRING   "Well Pump Controller"
-#define LCD_VER_STRING      "Version: 2.31"
+#define LCD_VER_STRING      "Version: 2.33"
                              
 #define LOG_INTERVAL        60      // How often logging occurs [s]
 
@@ -244,7 +244,7 @@ void Fault(const char *psz)
     Serial.println("");
     Serial.print("Fault @ ");
     Serial.print(GetTickCount()); 
-    Serial.print(" seconds!!!!!!!!!!!!!");
+    Serial.print(" seconds: ");
     Serial.println(psz);
     Serial.println(VER_STRING);
     LogState2Serial();
@@ -319,7 +319,9 @@ void PumpOn(void)
     if (digitalRead(PumpPin) == 0) {
         g_fWB_Turnon = g_fWell;
         g_ulPumpLastStart = GetTickCount();
-        if (g_ulPumpLastStart - g_ulPumpLastStop < MIN_PUMP_TIME) Fault("Rapid Cycling");
+        if (g_ulPumpLastStop) {
+            if (g_ulPumpLastStart - g_ulPumpLastStop < MIN_PUMP_TIME) Fault("Rapid Cycling");
+        }
         digitalWrite(PumpPin, HIGH);
     }
 }
@@ -329,7 +331,9 @@ void PumpOff(void)
    if (digitalRead(PumpPin) == 1) {
        g_fWB_Turnoff = g_fWell;
        g_ulPumpLastStop = GetTickCount();
-       if (g_ulPumpLastStop - g_ulPumpLastStart < MIN_PUMP_TIME) Fault("Rapid Cycling");
+       if (g_ulPumpLastStart) {
+           if (g_ulPumpLastStop - g_ulPumpLastStart < MIN_PUMP_TIME) Fault("Rapid Cycling");
+       }
        digitalWrite(PumpPin, LOW); 
    }
 }
