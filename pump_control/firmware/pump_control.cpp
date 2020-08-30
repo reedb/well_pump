@@ -35,9 +35,10 @@
 // Definitions
 //
 //*****************************************************************************
+#define LOG_INTERVAL        5      // How often logging occurs [s]
 
-#define COUNT_4MA  194              // Measured count at 4ma
-#define COUNT_20MA 981              // Measured count at 20ma
+#define COUNT_4MA           194     // Measured count at 4ma
+#define COUNT_20MA          981     // Measured count at 20ma
 #define LOW_ERR_THRES_4_20  164     // Error if less than this value
 #define HIGH_ERR_THRES_4_20 1000    // Error if greater than this value
 #define TANK_RANGE          5.0f    // Tank sensor:0-5 PSI
@@ -45,12 +46,9 @@
 #define WATER_COLUMN        0.4327f // Water Column (WC) presure to height, psi / foot
 #define FULL_TANK           7.33f   // Full tank is 7' 4 inches
 
-//#define MIN_PUMP_TIME       60L  // If we're not pumping/non-pumping for at least this number of seconds, something is wrong 
-//#define MAX_PUMP_TIME       21600L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
-//#define FILL_WAIT_TIME      3600L   // Time to spent in the FILL_WAIT state [s]
-#define MIN_PUMP_TIME       1L   // If we're not pumping/non-pumping for at least this number of seconds, something is wrong 
-#define MAX_PUMP_TIME       90L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
-#define FILL_WAIT_TIME      61L   // Time to spent in the FILL_WAIT state [s]
+#define MIN_PUMP_TIME       60L  // If we're not pumping/non-pumping for at least this number of seconds, something is wrong 
+#define MAX_PUMP_TIME       21600L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
+#define FILL_WAIT_TIME      3600L   // Time to spent in the FILL_WAIT state [s]
 
 #define START_HEIGHT_PERCENT 90     // Pump starts when tank level drops to this value
 #define STOP_HEIGHT_PERCENT  100    // Pump stops when tank level rises to this value
@@ -93,7 +91,6 @@ volatile unsigned long g_ulTicks = 0;     // One second tick counter, updated by
 // LiquidCrystal(rs, enable, d4, d5, d6, d7)
 //
 LiquidCrystal lcd(10, 9, 6, 5, 4, 3);
-
 
 //*****************************************************************************
 //
@@ -333,7 +330,7 @@ void PumpOff(void)
 
 //*****************************************************************************
 //
-//  NextState - Preform state change logging and checks.
+//  NextState - Preform state change logging.
 //
 //  Parameters
 //    iState - New state.
@@ -344,14 +341,8 @@ void PumpOff(void)
 
 int NextState(int iState)
 {   
-    // Log the state change.
-    // 
-    static unsigned long ulLastStateChange = 0;
-    
     Serial.print("New State: "); Serial.println(iState);
     LogState2Serial();
-    
-    ulLastStateChange = GetTickCount();
     return iState;
 }
 
@@ -446,7 +437,7 @@ void setup(void) {
   pinMode(LEDPin,   OUTPUT);    // Status LED
   
   while (!Serial); // wait for Serial port to connect.
-  Serial.println("Well Pump Controller Ver 2.3\n");  
+  Serial.println("\n\nWell Pump Controller Ver 2.3\n");  
   LogState2Serial();
   
   analogReference(DEFAULT); // Analog reference of 5 volts
@@ -467,11 +458,9 @@ void setup(void) {
 void loop(void) {
     static unsigned long ulLastTick = 0;
     
-    if ((GetTickCount() % 5) == 0) LogState2Serial();
-    Display();
-    
     // Loop to run once per second.
     while (ulLastTick == GetTickCount());
+    ulLastTick = GetTickCount();
 
     CalcHeights();
     
@@ -513,5 +502,7 @@ void loop(void) {
         default:
             Fault("Bad State");
     }
-    ulLastTick = GetTickCount();
+
+    if ((GetTickCount() % LOG_INTERVAL) == 0) LogState2Serial();
+    Display();
 }
