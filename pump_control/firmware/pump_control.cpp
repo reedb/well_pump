@@ -347,8 +347,8 @@ void PumpOff(void)
 
 int NextState(int iState)
 {   
-    Serial.print("New State: "); Serial.println(iState);
     LogState2Serial();
+    Serial.print("\nNew State: "); Serial.println(State2Str(iState));
     return iState;
 }
 
@@ -428,14 +428,7 @@ void setup(void) {
   TCCR1B |= (1 << CS12) | (1 << CS10);  
   TIMSK1 |= (1 << OCIE1A);
   sei();                //allow interrupts
-    
-  // set up the LCD's number of columns and rows:
-  lcd.begin(20, 4);  // 20x4 Characters
-  lcd.clear();
-  lcd.setCursor(0, 0); lcd.print(LCD_SPLASH_STRING);
-  lcd.setCursor(0, 1); lcd.print(LCD_VER_STRING);
-  delay(4000);
-  
+
   // Initialize debug serial port
   Serial.begin(9600);
   
@@ -453,6 +446,13 @@ void setup(void) {
   analogReference(DEFAULT); // Analog reference of 5 volts
   pinMode(TankPin, INPUT);
   pinMode(WellPin, INPUT); 
+    
+  // set up the LCD's number of columns and rows:
+  lcd.begin(20, 4);  // 20x4 Characters
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print(LCD_SPLASH_STRING);
+  lcd.setCursor(0, 1); lcd.print(LCD_VER_STRING);
+  delay(4000);
 }
 
 //*****************************************************************************
