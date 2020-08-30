@@ -45,10 +45,10 @@
 #define WATER_COLUMN        0.4327f // Water Column (WC) presure to height, psi / foot
 #define FULL_TANK           7.33f   // Full tank is 7' 4 inches
 
-//#define MIN_STATE_TIME      60L     // If we're not in a state for at least this number of seconds, something is wrong 
+//#define MIN_PUMP_TIME       60L  // If we're not pumping/non-pumping for at least this number of seconds, something is wrong 
 //#define MAX_PUMP_TIME       21600L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
 //#define FILL_WAIT_TIME      3600L   // Time to spent in the FILL_WAIT state [s]
-#define MIN_STATE_TIME      1L     // If we're not in a state for at least this number of seconds, something is wrong 
+#define MIN_PUMP_TIME       1L   // If we're not pumping/non-pumping for at least this number of seconds, something is wrong 
 #define MAX_PUMP_TIME       90L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
 #define FILL_WAIT_TIME      61L   // Time to spent in the FILL_WAIT state [s]
 
@@ -316,6 +316,7 @@ void PumpOn(void)
     if (digitalRead(PumpPin) == 0) {
         g_fWB_Turnon = g_fWell;
         g_ulPumpLastStart = GetTickCount();
+        if (g_ulPumpLastStart - g_ulPumpLastStop < MIN_PUMP_TIME) Fault("Rapid Cycling");
         digitalWrite(PumpPin, HIGH);
     }
 }
@@ -325,6 +326,7 @@ void PumpOff(void)
    if (digitalRead(PumpPin) == 1) {
        g_fWB_Turnoff = g_fWell;
        g_ulPumpLastStop = GetTickCount();
+       if (g_ulPumpLastStop - g_ulPumpLastStart < MIN_PUMP_TIME) Fault("Rapid Cycling");
        digitalWrite(PumpPin, LOW); 
    }
 }
@@ -348,14 +350,6 @@ int NextState(int iState)
     
     Serial.print("New State: "); Serial.println(iState);
     LogState2Serial();
-    
-    // Make sure we're not changing state too rapidly
-    //
-    if (ulLastStateChange) {
-        if ((TimeSince(ulLastStateChange)) < MIN_STATE_TIME) {
-            Fault("Rapid Cycling");
-        }
-    }
     
     ulLastStateChange = GetTickCount();
     return iState;
