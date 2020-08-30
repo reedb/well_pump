@@ -34,8 +34,13 @@
 //
 // Definitions
 //
-//*****************************************************************************
-#define LOG_INTERVAL        5      // How often logging occurs [s]
+//***************************************************************************** 
+
+#define VER_STRING          "\n\nWell Pump Controller Ver 2.31\n"
+#define LCD_SPLASH_STRING   "Well Pump Controller"
+#define LCD_VER_STRING      "Version: 2.31"
+                             
+#define LOG_INTERVAL        60      // How often logging occurs [s]
 
 #define COUNT_4MA           194     // Measured count at 4ma
 #define COUNT_20MA          981     // Measured count at 20ma
@@ -46,7 +51,7 @@
 #define WATER_COLUMN        0.4327f // Water Column (WC) presure to height, psi / foot
 #define FULL_TANK           7.33f   // Full tank is 7' 4 inches
 
-#define MIN_PUMP_TIME       60L  // If we're not pumping/non-pumping for at least this number of seconds, something is wrong 
+#define MIN_PUMP_TIME       60L     // If we're not pumping/non-pumping for at least this number of seconds, something is wrong 
 #define MAX_PUMP_TIME       21600L  // If we're in the PUMP state for at least this number of seconds (6 hours), something is wrong
 #define FILL_WAIT_TIME      3600L   // Time to spent in the FILL_WAIT state [s]
 
@@ -241,6 +246,7 @@ void Fault(const char *psz)
     Serial.print(GetTickCount()); 
     Serial.print(" seconds!!!!!!!!!!!!!");
     Serial.println(psz);
+    Serial.println(VER_STRING);
     LogState2Serial();
     
     lcd.clear();
@@ -412,12 +418,12 @@ ISR(TIMER1_COMPA_vect)
 void setup(void) {
 
   // Set timer1 to interrupt at 1Hz
-
+  //
   cli();                // stop interrupts
   TCCR1A = 0;           // set entire TCCR1A register to 0
   TCCR1B = 0;           // same for TCCR1B
   TCNT1  = 0;           // initialize counter value to 0
-  OCR1A = 15624;        // = (16*10^6) / (1*1024) - 1 (must be <65536)
+  OCR1A = 15624;        // = (16*10^6) / (1*1024) - 1 (must be < 65536)
   TCCR1B |= (1 << WGM12);
   TCCR1B |= (1 << CS12) | (1 << CS10);  
   TIMSK1 |= (1 << OCIE1A);
@@ -425,7 +431,11 @@ void setup(void) {
     
   // set up the LCD's number of columns and rows:
   lcd.begin(20, 4);  // 20x4 Characters
-
+  lcd.clear();
+  lcd.setCursor(0, 0); lcd.print(LCD_SPLASH_STRING);
+  lcd.setCursor(0, 1); lcd.print(LCD_VER_STRING);
+  delay(4000);
+  
   // Initialize debug serial port
   Serial.begin(9600);
   
@@ -437,8 +447,8 @@ void setup(void) {
   pinMode(LEDPin,   OUTPUT);    // Status LED
   
   while (!Serial); // wait for Serial port to connect.
-  Serial.println("\n\nWell Pump Controller Ver 2.3\n");  
-  LogState2Serial();
+  Serial.println();  
+  Serial.println(VER_STRING);
   
   analogReference(DEFAULT); // Analog reference of 5 volts
   pinMode(TankPin, INPUT);
