@@ -1,3 +1,5 @@
+Thu 06 May 2021, New tanks installed, 2x 5000 gallons, 11 foot full level. New tank sensor 15PSI and wiring. 
+
 Monday 08 Mar 2021, Swann residence reported water running from tank vent. Tom Swann shut down system.
   Tank Water Level sensor, Dwyer Series SBLT2 Lightning & Surge Protected Submersible Level Transmitter
   Spec: 5 psi, 4-20 mA Output, Dwyer Instruments SBLT2-5-40 
