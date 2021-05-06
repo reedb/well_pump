@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+
+# The Arduino IDE requires that the INO file is in a project named directory.
+sudo cp -v ~/projects/well_pump/pump_control/firmware/pump_control.cpp ~/projects/well_pump/pump_control/firmware/pump_control/pump_control.ino
+
+# Build using default preferences
+/snap/bin/arduino --verify --verbose-build ~/projects/well_pump/pump_control/firmware/pump_control/
+
+# Delete copied INO file.
+sudo rm pump_control/pump_control.ino
+
+#/Applications/Arduino.app/Contents/Java/hardware/tools/avr/bin/avrdude -C/Applications/Arduino.app/Contents/Java/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -cusbtiny -Uflash:w:/Users/reedb/projects/well_pump/pump_control/firmware/build/pump_control.ino.hex:i
