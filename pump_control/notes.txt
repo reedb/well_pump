@@ -1,14 +1,14 @@
 Well Pump Control:
 
 Well Bore Water Level sensor:
-http://www.setra.com/contact-us
-open Setra_Model_526_Data_Sheet.pdf
-Part No. 5261060PGW211UEF - Model 526 Pressure Transducer, 60 PSI, Gauge Pressure, Stainless Steel Sink Weight Nose Cone, 4-20 mA Output, 30 meters Molded Immersible Cable, 0.25% Accuracy.
-
+  http://www.setra.com/contact-us
+  open Setra_Model_526_Data_Sheet.pdf
+  Part No. 5261060PGW211UEF - Model 526 Pressure Transducer, 60 PSI, Gauge Pressure, Stainless Steel Sink Weight Nose Cone, 4-20 mA Output, 30 meters Molded Immersible Cable, 0.25% Accuracy.
 
 Tank Water Level sensor:
-Dwyer Series SBLT2 Lightning & Surge Protected Submersible Level Transmitter
-5 psi, 4-20 mA Output, Dwyer Instruments SBLT2-5-40 
+  Telemecanique Sensors XMLP015RD23F
+  Sensor, Pressure Transmitter, 15 PSI, 4-20MA, 1/4-18NPT, M12 
+  Cable: XZCP124L5, Sensor Cable, OsiSense, 90° M12 Receptacle, Free End, 4 Positions, 5 m, 16.4 ft
 
 +----------------+-----+-----+-----+-----+-----+-----+
 | LCD pin name   | RS  | EN  | DB4 | DB5 | DB6 | DB7 |
@@ -21,7 +21,12 @@ Water: 0.4327 psi / foot
 A0 - Tank, 4-20ma,  5 PSI, 
 A1 - Well, 4-20ma, 60 PSI, 
 
-10.76 ma - 4ma = 676 = 2.36 PSI = 5.5 feet = 66"
-Full tank: 88" = 7.33' = 3.17 psi = 14.14 ma
-5 PSI = 1600
-0 PSI = 0
+#define TANK_RANGE          15.0f   // [psi] Tank sensor: 0-15 PSI
+#define WELL_RANGE          60.0f   // [psi] Well sensor: 0-60 PSI
+#define WATER_COLUMN        0.4327f // Water Column (WC) presure to height, psi / foot
+#define FULL_TANK           11.0f   // Full tank is 11'
+
+Old Tank Water Level sensor:
+  Dwyer Series SBLT2 Lightning & Surge Protected Submersible Level Transmitter
+  5 psi, 4-20 mA Output, Dwyer Instruments SBLT2-5-40 
+  #define TANK_RANGE          6.52f   // Mar 11, 2021: measured 11.58mA=1.895psi, actually 68.5"=2.47psi. Increased range to correct

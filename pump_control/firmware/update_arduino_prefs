@@ -1,3 +1,0 @@
-#! /usr/bin/env bash
-# Copy prefernces file to correct location
-sudo cp -v /Users/reedb/projects/well_pump/pump_control/firmware/preferences.txt /Users/reedb/Library/Arduino15/preferences.txt

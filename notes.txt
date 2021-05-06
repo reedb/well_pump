@@ -1,3 +1,10 @@
+Monday 08 Mar 2021, Swann residence reported water running from tank vent. Tom Swann shut down system.
+  Tank Water Level sensor, Dwyer Series SBLT2 Lightning & Surge Protected Submersible Level Transmitter
+  Spec: 5 psi, 4-20 mA Output, Dwyer Instruments SBLT2-5-40 
+  Mar 11, 2021: measured 11.58mA=1.895psi, actually 68.5"=2.47psi. Sensor is failing. New sensor ordered.
+
+
+
 Fri 31 Jul 2020 - Leak has been isolated to the road segment. 
   Leak rate is 30 gallons/hour
 Sat  1 Aug 2020 - Leak is not in pump segment. Leak can be heard clearly at pump segment shutoff valve.

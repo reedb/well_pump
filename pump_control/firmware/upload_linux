@@ -2,7 +2,8 @@
 # Linux version
 
 # User should press reset button before upload to activate onboard boot loader.
+# User should see RED fade LED during upload active time (10 seconds).
 read -n1 -r -p "Press reset on Arduino board and hit 'Enter' to continue..."
 
 # Upload to board
-/usr/bin/avrdude -Cavrdude.conf -v -patmega328p -cusbtiny -Uflash:w:/home/reedb/projects/well_pump/pump_control/firmware/build/pump_control.ino.hex:i
+/usr/bin/avrdude -Cavrdude.conf -v -patmega328p -cusbtiny -Uflash:w:/home/reedb/projects/well_pump/pump_control/firmware/build-uno/firmware.hex:i

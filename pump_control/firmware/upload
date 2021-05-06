@@ -1,8 +1,0 @@
-#! /usr/bin/env bash
-
-# User should press reset button before upload to activate onboard boot loader.
-echo "Connect ProTrinket board using on board USB port."
-read -n1 -r -p "Press reset on Arduino board and hit 'Enter' to continue..."
-
-# Upload to board
-/Applications/Arduino.app/Contents/Java/hardware/tools/avr/bin/avrdude -C/Applications/Arduino.app/Contents/Java/hardware/tools/avr/etc/avrdude.conf -v -patmega328p -cusbtiny -Uflash:w:/Users/reedb/projects/well_pump/pump_control/firmware/build/pump_control.ino.hex:i 
